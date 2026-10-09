@@ -1,0 +1,3 @@
+→ shop.order.42.paid
+Заказ 42 оплачен
+← shop.order.42.paid

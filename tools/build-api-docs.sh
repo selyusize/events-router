@@ -23,3 +23,6 @@ rm docs/api/Home.md
 
 # Шаблон saggre/phpdocumentor-markdown экранирует % в описаниях как %%
 find docs/api -name '*.md' -exec perl -pi -e 's/%%/%/g' {} +
+
+# Ссылки на классы PHP и чужих пакетов: страниц для них в справочнике нет
+php tools/fix-api-links.php docs/api

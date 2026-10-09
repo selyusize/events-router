@@ -37,5 +37,6 @@ return static function (EventRouter $events): void {
 ## С чего начать
 
 - [Быстрый старт](guide/getting-started.md) — установка и проверка.
+- [Основные понятия](guide/concepts.md) — событие, слушатель, middleware.
 - [Справочник API](api/index.md) — все публичные классы и методы, собирается из кода.
 - [Ошибки](errors/index.md) — что означает каждое исключение библиотеки и как его исправить.
