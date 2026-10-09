@@ -21,7 +21,7 @@
         "overtrue/phplint": "^9.0",
         "phpunit/phpunit": "^10.5",
         "saggre/phpdocumentor-markdown": "^1.0",
-        "vimeo/psalm": "^5.26"
+        "vimeo/psalm": "^6.19"
     },
     "suggest": {
         "psr/log": "Для PsrLoggerErrorHandler: запись ошибок слушателей в PSR-3 логгер"
