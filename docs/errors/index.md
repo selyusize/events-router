@@ -21,5 +21,7 @@ try {
 | --- | --- |
 | [`InvalidEventName`](invalid-event-name.md) | имя события не является корректным топиком |
 | [`InvalidTopicPattern`](invalid-topic-pattern.md) | шаблон топика в маршруте записан с ошибкой |
+| [`UnmappableEvent`](unmappable-event.md) | в PSR-14 адаптер передан объект без `EventInterface`, а маппера нет |
+| [`UnresolvableHandler`](unresolvable-handler.md) | класс слушателя, middleware или обработчика ошибок нельзя использовать: нет класса, не тот интерфейс, контейнер вернул другое |
 
 Страницы появляются вместе с исключениями: CI не пропустит исключение без страницы.

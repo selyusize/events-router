@@ -53,5 +53,5 @@ markdown_extensions:
       alternate_style: true
   # Примеры вставляются из examples/: --8<-- "getting-started/check-installation.php:example"
   - pymdownx.snippets:
-      base_path: [examples]
+      base_path: [examples, .]
       check_paths: true

@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Routing;
 
 use Override;
-use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
-use Selyusize\EventsRouter\Contract\Routing\RouteCollectorInterface;
+use Selyusize\EventsRouter\Topic\TopicPattern;
 
 /**
  * Группа маршрутов: общий префикс топика и общие middleware.
  *
- * Аналог `RouteCollectorProxy` в Slim. Middleware группы оборачивают
- * middleware каждого её маршрута, внешняя группа оборачивает вложенную.
- * `add()` можно вызвать после объявления маршрутов — так обычно и пишут:
+ * Аналог `RouteCollectorProxy` в Slim. Хранит свои маршруты и вложенные группы
+ * в порядке объявления. Middleware группы оборачивают middleware каждого её маршрута,
+ * внешняя группа оборачивает вложенную. `add()` можно вызвать после объявления
+ * маршрутов — так обычно и пишут:
  *
  * ```php
  * $events->group('order', static function (RouteGroup $group): void {
@@ -28,29 +28,48 @@ use Selyusize\EventsRouter\Contract\Routing\RouteCollectorInterface;
 final class RouteGroup implements RouteCollectorInterface
 {
     /**
+     * @var list<RouteDefinition|self>
+     */
+    private array $children = [];
+
+    /**
      * @var list<class-string<MiddlewareInterface>|MiddlewareInterface>
      */
     private array $middleware = [];
 
     /**
      * @internal группы создаёт роутер или родительская группа
+     *
+     * @param string $path префиксы всех внешних групп и этой, через точку
+     * @param string $prefix префикс этой группы, как передан в `group()`
      */
     public function __construct(
-        private readonly RouteCollector $collector,
-        private readonly string $prefix,
-        private readonly ?self $parent = null,
+        private readonly Revision $revision,
+        private readonly string $path = '',
+        private readonly string $prefix = '',
     ) {}
 
     #[Override]
-    public function listen(string $pattern, ListenerInterface|string $listener): Route
+    public function listen(string $pattern, string $listener): RouteDefinition
     {
-        return $this->collector->addRoute($this->path($pattern), $listener, $this);
+        // Проверяем шаблон сразу, чтобы ошибка указывала на строку с listen().
+        // Префикс роутера добавится при сборке таблицы.
+        TopicPattern::fromString(self::join($this->path, $pattern));
+
+        $route = new RouteDefinition($pattern, $listener, $this->revision);
+        $this->children[] = $route;
+        $this->revision->bump();
+
+        return $route;
     }
 
     #[Override]
     public function group(string $prefix, callable $routes): self
     {
-        $group = new self($this->collector, $prefix, $this);
+        $group = new self($this->revision, self::join($this->path, $prefix), $prefix);
+        $this->children[] = $group;
+        $this->revision->bump();
+
         $routes($group);
 
         return $group;
@@ -66,6 +85,7 @@ final class RouteGroup implements RouteCollectorInterface
     public function add(MiddlewareInterface|string $middleware): self
     {
         $this->middleware[] = $middleware;
+        $this->revision->bump();
 
         return $this;
     }
@@ -80,7 +100,7 @@ final class RouteGroup implements RouteCollectorInterface
 
     /**
      * Middleware этой группы в порядке выполнения: первым идёт добавленный последним.
-     * Middleware родительских групп сюда не входят.
+     * Middleware внешних групп сюда не входят.
      *
      * @return list<class-string<MiddlewareInterface>|MiddlewareInterface>
      */
@@ -90,19 +110,28 @@ final class RouteGroup implements RouteCollectorInterface
     }
 
     /**
-     * Цепочка групп от самой внешней до этой.
+     * Маршруты и вложенные группы в порядке объявления.
      *
-     * @return non-empty-list<self>
+     * @return list<RouteDefinition|self>
      */
-    public function getGroups(): array
+    public function getChildren(): array
     {
-        return $this->parent === null ? [$this] : [...$this->parent->getGroups(), $this];
+        return $this->children;
     }
 
-    private function path(string $pattern): string
+    /**
+     * Номер версии маршрутов: растёт при любом изменении в этой группе или любой другой.
+     */
+    public function getRevision(): int
     {
-        return $this->parent === null
-            ? RouteCollector::join($this->prefix, $pattern)
-            : $this->parent->path(RouteCollector::join($this->prefix, $pattern));
+        return $this->revision->get();
+    }
+
+    /**
+     * Соединить части топика через точку, пропуская пустые.
+     */
+    public static function join(string ...$parts): string
+    {
+        return implode('.', array_filter($parts, static fn (string $part): bool => $part !== ''));
     }
 }

@@ -2,21 +2,52 @@
 
 Роутер событий для PHP. Маршруты событий описываются так же, как HTTP-маршруты в Slim: шаблоны топиков с параметрами, группы, middleware на группах и маршрутах. На одно событие можно повесить несколько слушателей. Совместим с PSR-14.
 
+**Документация:** https://selyusize.github.io/events-router/
+
 ```php
 return static function (EventRouter $events): void {
+    $events->setPrefix('shop');
+
     $events->group('order', static function (RouteGroup $group): void {
+        $group->listen('created', Listener\ReserveStock::class);
         $group->listen('created', Listener\SendConfirmationEmail::class);
         $group->listen('{order_id}.paid', Listener\MarkOrderPaid::class);
-        $group->listen('{order_id}.paid', Listener\AccrueBonuses::class);
-    })->add(Middleware\EventLogger::class);
+    })
+        ->add(Middleware\EventLogger::class);
 };
 ```
 
-> Статус: в разработке, API ещё не стабилен.
+```php
+$events = EventRouterFactory::create($container);   // контейнер необязателен
+(require __DIR__ . '/events.php')($events);
 
-## Требования
+$report = $events->dispatch(new Event('shop.order.42.paid', ['amount' => 1500]));
+```
 
-PHP 8.1+
+```php
+final class MarkOrderPaid implements ListenerInterface
+{
+    public static function handle(EventInterface $event): void
+    {
+        // $event->getAttribute('order_id') === '42'
+    }
+}
+```
+
+## Установка
+
+```bash
+composer require selyusize/events-router
+```
+
+PHP 8.1+. Версия 0.x: API может меняться до 1.0, изменения — в [CHANGELOG](CHANGELOG.md).
+
+## Возможности
+
+- шаблоны топиков: `order.{order_id}.paid`, `order.{id:\d+}`, `order.*.cancelled`, `order.#`;
+- группы и middleware как в Slim, порядок слушателей — порядок строк в файле;
+- отчёт о рассылке, изоляция ошибок слушателей, стратегии ошибок;
+- PSR-11 контейнер для middleware, PSR-14 адаптер, воркеры с источниками событий.
 
 ## Разработка
 
@@ -28,8 +59,6 @@ make cs-fix    # исправить стиль кода
 make docs-install  # один раз: Python-окружение для сайта документации
 make docs-serve    # сайт документации локально: http://127.0.0.1:8000
 ```
-
-Документация: https://selyusize.github.io/events-router/
 
 В docker-окружении: `make check RUN="dl exec"`.
 

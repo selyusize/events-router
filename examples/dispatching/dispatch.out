@@ -1,0 +1,7 @@
+→ order.42.paid
+    MarkOrderPaid: заказ 42
+    SendReceipt: чек на 1500 ₽
+← order.42.paid
+MarkOrderPaid: Handled
+AccrueBonuses: Failed — сервис бонусов недоступен
+SendReceipt: Handled

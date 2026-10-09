@@ -5,9 +5,9 @@ declare(strict_types=1);
 require __DIR__ . '/../../vendor/autoload.php';
 
 // --8<-- [start:example]
-use Selyusize\EventsRouter\EventRouter;
+use Selyusize\EventsRouter\EventRouterFactory;
 
-$events = new EventRouter();
+$events = EventRouterFactory::create();
 (require __DIR__ . '/events.php')($events);
 
 $short = static fn (object|string $class): string => substr(strrchr('\\' . (is_string($class) ? $class : $class::class), '\\'), 1);

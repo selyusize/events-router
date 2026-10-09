@@ -4,3 +4,4 @@ nav:
   - Ошибки: errors
   - Справочник API: api
   - Разработка: contributing
+  - Изменения: changelog.md

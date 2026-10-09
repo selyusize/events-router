@@ -3,4 +3,9 @@ nav:
   - concepts.md
   - topics.md
   - routes.md
+  - dispatching.md
+  - errors.md
+  - workers.md
+  - typed-events.md
+  - psr14.md
   - from-slim.md

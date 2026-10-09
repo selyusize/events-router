@@ -14,8 +14,8 @@
 | `/{suborderId}/deliveries` | `{order_id}.delivered`, `{id:\d+}` | параметры попадают в атрибуты события, имена — snake_case |
 | — | `*`, `#` | один сегмент / любое число сегментов |
 | `->add(A::class)->add(B::class)` | то же | B выполняется раньше A |
-| Action, `RequestHandlerInterface` | слушатель, `ListenerInterface` | `handle(EventInterface $event): void` |
-| PSR-15 middleware | `MiddlewareInterface` | `process(EventInterface $event, ListenerInterface $next): void` |
+| Action, `RequestHandlerInterface` | слушатель, `ListenerInterface` | `public static function handle(EventInterface $event): void` — статичный |
+| PSR-15 middleware | `MiddlewareInterface` | `process(EventInterface $event, EventHandlerInterface $next): void` |
 
 ## Главное отличие
 

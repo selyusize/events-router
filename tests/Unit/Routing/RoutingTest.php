@@ -7,10 +7,11 @@ namespace Selyusize\EventsRouter\Tests\Unit\Routing;
 use Fixture\Listener;
 use Fixture\Middleware;
 use PHPUnit\Framework\TestCase;
+use Selyusize\EventsRouter\Contract\Core\EventHandlerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
-use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\EventRouter;
+use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
 use Selyusize\EventsRouter\Routing\Route;
 use Selyusize\EventsRouter\Routing\RouteGroup;
@@ -29,7 +30,7 @@ final class RoutingTest extends TestCase
      */
     public function testBuildsRoutesFileInSlimStyle(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
 
         (static function (EventRouter $events): void {
             $events->setPrefix('shop');
@@ -85,7 +86,7 @@ final class RoutingTest extends TestCase
 
     public function testMiddlewareOrderMatchesSlim(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
 
         $events->group('outer', static function (RouteGroup $outer): void {
             $outer->group('inner', static function (RouteGroup $inner): void {
@@ -108,7 +109,7 @@ final class RoutingTest extends TestCase
 
     public function testGroupMiddlewareAddedAfterRoutesAppliesToThem(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
 
         $group = $events->group('order', static function (RouteGroup $group): void {
             $group->listen('created', Listener\Any::class);
@@ -123,7 +124,7 @@ final class RoutingTest extends TestCase
 
     public function testRoutesAreKeptInDeclarationOrderWithIndex(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
         $events->listen('b', Listener\Second::class);
         $events->group('a', static function (RouteGroup $group): void {
             $group->listen('x', Listener\Third::class);
@@ -136,7 +137,7 @@ final class RoutingTest extends TestCase
 
     public function testPrefixCanBeSetAfterRoutesAndChanged(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
         $events->group('order', static function (RouteGroup $group): void {
             $group->listen('created', Listener\Any::class);
         });
@@ -151,7 +152,7 @@ final class RoutingTest extends TestCase
 
     public function testInvalidPrefixLeavesRouterUnchanged(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
         $events->setPrefix('shop');
         $events->listen('{id}', Listener\Any::class);
 
@@ -168,7 +169,7 @@ final class RoutingTest extends TestCase
 
     public function testEmptyPatternInsideGroupListensToGroupPrefix(): void
     {
-        $events = new EventRouter();
+        $events = EventRouterFactory::create();
         $events->group('order', static function (RouteGroup $group): void {
             $group->listen('', Listener\Any::class);
         });
@@ -181,7 +182,7 @@ final class RoutingTest extends TestCase
         $this->expectException(InvalidTopicPattern::class);
         $this->expectExceptionMessage('шаблон пустой');
 
-        (new EventRouter())->group('', static function (RouteGroup $group): void {
+        EventRouterFactory::create()->group('', static function (RouteGroup $group): void {
             $group->listen('', Listener\Any::class);
         });
     }
@@ -191,7 +192,7 @@ final class RoutingTest extends TestCase
         $this->expectException(InvalidTopicPattern::class);
         $this->expectExceptionMessage('"order.{orderId}.paid"');
 
-        (new EventRouter())->group('order', static function (RouteGroup $group): void {
+        EventRouterFactory::create()->group('order', static function (RouteGroup $group): void {
             $group->listen('{orderId}.paid', Listener\Any::class);
         });
     }
@@ -201,37 +202,57 @@ final class RoutingTest extends TestCase
         $this->expectException(InvalidTopicPattern::class);
         $this->expectExceptionMessage('параметр {id} встречается дважды');
 
-        (new EventRouter())->group('user.{id}', static function (RouteGroup $group): void {
+        EventRouterFactory::create()->group('user.{id}', static function (RouteGroup $group): void {
             $group->listen('order.{id}', Listener\Any::class);
         });
     }
 
-    public function testRouteNameAndInstances(): void
+    public function testRouteDefinitionAndCompiledRoute(): void
     {
-        $listener = new class implements ListenerInterface {
-            public function handle(EventInterface $event): void {}
-        };
         $middleware = new class implements MiddlewareInterface {
-            public function process(EventInterface $event, ListenerInterface $next): void {}
+            public function process(EventInterface $event, EventHandlerInterface $next): void {}
         };
 
-        $events = new EventRouter();
-        $route = $events->listen('order.paid', $listener)
+        $events = EventRouterFactory::create();
+        $definition = $events->listen('order.paid', Listener\MarkOrderPaid::class)
             ->add($middleware)
             ->name('order.mark_paid');
 
-        self::assertSame($listener, $route->getListener());
+        self::assertSame('order.paid', $definition->getPattern());
+        self::assertSame(Listener\MarkOrderPaid::class, $definition->getListener());
+        self::assertSame([$middleware], $definition->getMiddleware());
+        self::assertSame('order.mark_paid', $definition->getName());
+
+        $route = $events->getRoutes()[0];
+        self::assertSame(Listener\MarkOrderPaid::class, $route->getListener());
         self::assertSame([$middleware], $route->getMiddleware());
         self::assertSame('order.mark_paid', $route->getName());
+
         self::assertNull($events->listen('order.created', Listener\Any::class)->getName());
     }
 
-    public function testGroupExposesPrefixAndOwnMiddleware(): void
+    public function testRouteTableIsRebuiltOnlyAfterChanges(): void
+    {
+        $events = EventRouterFactory::create();
+        $definition = $events->listen('order.paid', Listener\Any::class);
+
+        $first = $events->getRoutes();
+        self::assertSame($first, $events->getRoutes(), 'без изменений таблица та же');
+
+        $definition->name('order.paid');
+        self::assertNotSame($first[0], $events->getRoutes()[0]);
+        self::assertSame('order.paid', $events->getRoutes()[0]->getName());
+    }
+
+    public function testGroupExposesPrefixMiddlewareAndChildren(): void
     {
         $inner = null;
+        $definition = null;
 
-        (new EventRouter())->group('order', static function (RouteGroup $group) use (&$inner): void {
-            $inner = $group->group('{order_id}', static function (): void {})
+        EventRouterFactory::create()->group('order', static function (RouteGroup $group) use (&$inner, &$definition): void {
+            $inner = $group->group('{order_id}', static function (RouteGroup $one) use (&$definition): void {
+                $definition = $one->listen('paid', Listener\Any::class);
+            })
                 ->add(Middleware\First::class)
                 ->add(Middleware\Second::class);
         })->add(Middleware\Outer::class);
@@ -239,7 +260,7 @@ final class RoutingTest extends TestCase
         self::assertInstanceOf(RouteGroup::class, $inner);
         self::assertSame('{order_id}', $inner->getPrefix());
         self::assertSame([Middleware\Second::class, Middleware\First::class], $inner->getMiddleware());
-        self::assertSame(['order', '{order_id}'], array_map(static fn (RouteGroup $group): string => $group->getPrefix(), $inner->getGroups()));
+        self::assertSame([$definition], $inner->getChildren());
     }
 
     /**

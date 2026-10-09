@@ -1,0 +1,10 @@
+shop.order.created
+    1. ReserveStock {}
+    2. SendConfirmationEmail {}
+shop.order.42.paid
+    1. MarkOrderPaid {"order_id":"42"}
+    2. AccrueBonuses {"order_id":"42"}
+shop.order.42.payment.failed
+    1. AuditPayment {"order_id":"42"}
+shop.catalog.updated
+    слушателей нет

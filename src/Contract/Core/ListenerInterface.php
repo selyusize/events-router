@@ -7,20 +7,17 @@ namespace Selyusize\EventsRouter\Contract\Core;
 /**
  * Слушатель события — аналог Action в Slim.
  *
- * Один класс — одна реакция на событие. Зависимости передаются через конструктор,
- * роутер берёт слушателя из PSR-11 контейнера. На одно событие может быть
- * сколько угодно слушателей, каждый вызывается отдельно.
+ * Один класс — одна реакция на событие. Метод статичный: роутер вызывает
+ * `Listener::handle($event)` и не создаёт объектов. Зависимости слушатель
+ * берёт сам, например из контейнера. На одно событие может быть сколько угодно
+ * слушателей, каждый вызывается отдельно.
  *
  * ```php
  * final class SendConfirmationEmail implements ListenerInterface
  * {
- *     public function __construct(
- *         private readonly Mailer $mailer,
- *     ) {}
- *
- *     public function handle(EventInterface $event): void
+ *     public static function handle(EventInterface $event): void
  *     {
- *         $this->mailer->sendOrderConfirmation($event->getAttribute('order_id'));
+ *         Container::get(Mailer::class)->sendOrderConfirmation($event->getAttribute('order_id'));
  *     }
  * }
  * ```
@@ -30,5 +27,5 @@ interface ListenerInterface
     /**
      * Обработать событие.
      */
-    public function handle(EventInterface $event): void;
+    public static function handle(EventInterface $event): void;
 }

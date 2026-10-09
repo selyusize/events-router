@@ -7,7 +7,7 @@ namespace Selyusize\EventsRouter\Contract\Core;
 /**
  * Middleware — обёртка вокруг слушателя, как PSR-15 middleware вокруг Action.
  *
- * Получает событие и следующее звено цепочки `$next`. Может:
+ * Получает событие и следующее звено цепочки `$next` (другой middleware или слушатель). Может:
  *
  * - сделать что-то до и после вызова (логирование, транзакция, замер времени);
  * - передать дальше изменённое событие (`$event->withAttribute(...)`);
@@ -19,7 +19,7 @@ namespace Selyusize\EventsRouter\Contract\Core;
  * ```php
  * final class EventLogger implements MiddlewareInterface
  * {
- *     public function process(EventInterface $event, ListenerInterface $next): void
+ *     public function process(EventInterface $event, EventHandlerInterface $next): void
  *     {
  *         $this->logger->info('Событие ' . $event->getName());
  *
@@ -33,5 +33,5 @@ interface MiddlewareInterface
     /**
      * Обработать событие и, если нужно, передать его следующему звену.
      */
-    public function process(EventInterface $event, ListenerInterface $next): void;
+    public function process(EventInterface $event, EventHandlerInterface $next): void;
 }

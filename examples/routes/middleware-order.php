@@ -5,10 +5,10 @@ declare(strict_types=1);
 require __DIR__ . '/../../vendor/autoload.php';
 
 // --8<-- [start:example]
-use Selyusize\EventsRouter\EventRouter;
+use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 
-$events = new EventRouter();
+$events = EventRouterFactory::create();
 
 $events->group('order', static function (RouteGroup $order): void {
     $order->group('{order_id}', static function (RouteGroup $one): void {
