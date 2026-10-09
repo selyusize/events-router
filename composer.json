@@ -1,0 +1,55 @@
+{
+    "name": "selyusize/events-router",
+    "description": "Роутер событий для PHP: шаблоны топиков, группы и middleware в стиле Slim, несколько слушателей на событие, совместим с PSR-14.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["events", "event-dispatcher", "router", "listener", "middleware", "psr-14", "slim"],
+    "authors": [
+        {
+            "name": "Ярослав Селютин",
+            "email": "moontesearch@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "psr/container": "^1.1 || ^2.0",
+        "psr/event-dispatcher": "^1.0",
+        "webmozart/assert": "^1.11"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.59",
+        "overtrue/phplint": "^9.0",
+        "phpunit/phpunit": "^10.5",
+        "vimeo/psalm": "^5.26"
+    },
+    "suggest": {
+        "psr/log": "Для PsrLoggerErrorHandler: запись ошибок слушателей в PSR-3 логгер"
+    },
+    "autoload": {
+        "psr-4": {
+            "Selyusize\\EventsRouter\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Selyusize\\EventsRouter\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "lint": "phplint",
+        "cs": "php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "php-cs-fixer fix",
+        "psalm": "psalm --no-cache",
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html var/coverage",
+        "check": [
+            "@lint",
+            "@cs",
+            "@psalm",
+            "@test"
+        ]
+    }
+}

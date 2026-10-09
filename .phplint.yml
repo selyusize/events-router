@@ -1,0 +1,7 @@
+path:
+  - src
+  - tests
+jobs: 10
+cache-dir: var/cache/phplint
+extensions:
+  - php

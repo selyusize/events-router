@@ -1,0 +1,16 @@
+/vendor/
+/var/
+/composer.lock
+
+# документация: генерируется phpDocumentor и MkDocs
+/docs/api/
+/site/
+
+/.idea/
+/.vscode/
+.DS_Store
+
+# локальная копия стартовой архитектуры для справки, не часть библиотеки
+/start-architecture/
+
+plan.md
