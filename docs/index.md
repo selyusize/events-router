@@ -16,10 +16,11 @@ return static function (EventRouter $events): void {
         $group->listen('created', Listener\Order\SendConfirmationEmail::class);
         $group->listen('created', Listener\Order\ReserveStock::class)->priority(100);
 
-        $group->listen('{orderId}.paid', [
-            Listener\Order\MarkOrderPaid::class,
-            Listener\Bonuses\AccrueBonuses::class,
-        ])->add(Middleware\Idempotency\IdempotencyGuard::class);
+        $group->group('{order_id}', static function (RouteGroup $order): void {
+            $order->listen('paid', Listener\Order\MarkOrderPaid::class);
+            $order->listen('paid', Listener\Bonuses\AccrueBonuses::class);
+        })
+            ->add(Middleware\Idempotency\IdempotencyGuard::class);
     })
         ->add(Middleware\EventLog\EventLogger::class);
 };
@@ -38,5 +39,6 @@ return static function (EventRouter $events): void {
 
 - [Быстрый старт](guide/getting-started.md) — установка и проверка.
 - [Основные понятия](guide/concepts.md) — событие, слушатель, middleware.
+- [Топики и шаблоны](guide/topics.md) — `order.{order_id}.paid`, `*`, `#`.
 - [Справочник API](api/index.md) — все публичные классы и методы, собирается из кода.
 - [Ошибки](errors/index.md) — что означает каждое исключение библиотеки и как его исправить.

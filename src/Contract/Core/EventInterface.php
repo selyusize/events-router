@@ -8,7 +8,7 @@ namespace Selyusize\EventsRouter\Contract\Core;
  * Событие: имя-топик, данные и атрибуты.
  *
  * Имя — конкретный топик из сегментов через точку, например `shop.order.42.paid`.
- * Роутер сопоставляет его с шаблонами маршрутов (`order.{orderId}.paid`)
+ * Роутер сопоставляет его с шаблонами маршрутов (`order.{order_id}.paid`)
  * и кладёт найденные параметры в атрибуты, как Slim кладёт `{id}` из URL в атрибуты запроса.
  *
  * Событие неизменяемо, как PSR-7 запрос: `withAttribute()` возвращает новый объект.
@@ -21,9 +21,9 @@ namespace Selyusize\EventsRouter\Contract\Core;
  * $event->getName();                     // 'shop.order.42.paid'
  * $event->getPayload();                  // ['amount' => 1500]
  *
- * $withId = $event->withAttribute('orderId', '42');
- * $withId->getAttribute('orderId');      // '42'
- * $event->getAttribute('orderId');       // null — исходное событие не изменилось
+ * $withId = $event->withAttribute('order_id', '42');
+ * $withId->getAttribute('order_id');      // '42'
+ * $event->getAttribute('order_id');       // null — исходное событие не изменилось
  * ```
  *
  * @template-covariant TPayload

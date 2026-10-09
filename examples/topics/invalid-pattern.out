@@ -1,0 +1,1 @@
+Некорректный шаблон топика "order-{order_id}.paid": параметр в сегменте "order-{order_id}" должен занимать весь сегмент, например order.{order_id}. См. https://selyusize.github.io/events-router/errors/invalid-topic-pattern/

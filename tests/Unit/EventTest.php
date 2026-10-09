@@ -55,7 +55,7 @@ final class EventTest extends TestCase
         yield 'перевод строки' => ["order.\npaid", 'пробельные символы'];
         yield 'звёздочка' => ['order.*', 'только в шаблонах'];
         yield 'решётка' => ['order.#', 'только в шаблонах'];
-        yield 'параметр' => ['order.{orderId}.paid', 'только в шаблонах'];
+        yield 'параметр' => ['order.{order_id}.paid', 'только в шаблонах'];
         yield 'точка в начале' => ['.order', 'пустой сегмент'];
         yield 'точка в конце' => ['order.', 'пустой сегмент'];
         yield 'две точки подряд' => ['order..paid', 'пустой сегмент'];
@@ -83,10 +83,10 @@ final class EventTest extends TestCase
 
     public function testReturnsAttributesAndDefault(): void
     {
-        $event = new Event('order.paid', attributes: ['orderId' => '42', 'empty' => null]);
+        $event = new Event('order.paid', attributes: ['order_id' => '42', 'empty' => null]);
 
-        self::assertSame(['orderId' => '42', 'empty' => null], $event->getAttributes());
-        self::assertSame('42', $event->getAttribute('orderId'));
+        self::assertSame(['order_id' => '42', 'empty' => null], $event->getAttributes());
+        self::assertSame('42', $event->getAttribute('order_id'));
         self::assertSame('нет', $event->getAttribute('missing', 'нет'));
         self::assertNull($event->getAttribute('empty', 'нет'), 'существующий атрибут со значением null не заменяется на default');
     }
@@ -96,11 +96,11 @@ final class EventTest extends TestCase
         $payload = new stdClass();
         $original = new Event('order.paid', $payload, ['source' => 'api']);
 
-        $copy = $original->withAttribute('orderId', '42')->withAttribute('source', 'queue');
+        $copy = $original->withAttribute('order_id', '42')->withAttribute('source', 'queue');
 
         self::assertNotSame($original, $copy);
         self::assertSame(['source' => 'api'], $original->getAttributes());
-        self::assertSame(['source' => 'queue', 'orderId' => '42'], $copy->getAttributes());
+        self::assertSame(['source' => 'queue', 'order_id' => '42'], $copy->getAttributes());
         self::assertSame('order.paid', $copy->getName());
         self::assertSame($payload, $copy->getPayload(), 'payload не копируется');
     }

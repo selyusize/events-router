@@ -14,7 +14,7 @@ final class MarkOrderPaid implements ListenerInterface
 {
     public function handle(EventInterface $event): void
     {
-        echo 'Заказ ', $event->getAttribute('orderId'), ' оплачен', PHP_EOL;
+        echo 'Заказ ', $event->getAttribute('order_id'), ' оплачен', PHP_EOL;
     }
 }
 // --8<-- [end:listener]
@@ -51,6 +51,6 @@ $pipeline = new class($middleware, $next) implements ListenerInterface {
 };
 
 $pipeline->handle(
-    (new Event('shop.order.42.paid'))->withAttribute('orderId', '42'),
+    (new Event('shop.order.42.paid'))->withAttribute('order_id', '42'),
 );
 // --8<-- [end:pipeline]

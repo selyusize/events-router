@@ -20,7 +20,7 @@ namespace Selyusize\EventsRouter\Contract\Core;
  *
  *     public function handle(EventInterface $event): void
  *     {
- *         $this->mailer->sendOrderConfirmation($event->getAttribute('orderId'));
+ *         $this->mailer->sendOrderConfirmation($event->getAttribute('order_id'));
  *     }
  * }
  * ```

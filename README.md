@@ -6,10 +6,8 @@
 return static function (EventRouter $events): void {
     $events->group('order', static function (RouteGroup $group): void {
         $group->listen('created', Listener\SendConfirmationEmail::class);
-        $group->listen('{orderId}.paid', [
-            Listener\MarkOrderPaid::class,
-            Listener\AccrueBonuses::class,
-        ]);
+        $group->listen('{order_id}.paid', Listener\MarkOrderPaid::class);
+        $group->listen('{order_id}.paid', Listener\AccrueBonuses::class);
     })->add(Middleware\EventLogger::class);
 };
 ```

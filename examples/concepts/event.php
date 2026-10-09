@@ -13,8 +13,8 @@ echo $event->getName(), PHP_EOL;                         // shop.order.42.paid
 echo $event->getPayload()['amount'], PHP_EOL;            // 1500
 
 // Событие неизменяемо: withAttribute() возвращает копию
-$withId = $event->withAttribute('orderId', '42');
+$withId = $event->withAttribute('order_id', '42');
 
-echo $withId->getAttribute('orderId'), PHP_EOL;          // 42
-echo $event->getAttribute('orderId', 'нет'), PHP_EOL;    // нет — исходное событие не изменилось
+echo $withId->getAttribute('order_id'), PHP_EOL;          // 42
+echo $event->getAttribute('order_id', 'нет'), PHP_EOL;    // нет — исходное событие не изменилось
 // --8<-- [end:example]
