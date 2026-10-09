@@ -12,7 +12,7 @@ return static function (EventRouter $events): void {
 };
 ```
 
-> Статус: в разработке, API ещё не стабилен. План — в [plan.md](plan.md).
+> Статус: в разработке, API ещё не стабилен.
 
 ## Требования
 

@@ -2,3 +2,5 @@ nav:
   - getting-started.md
   - concepts.md
   - topics.md
+  - routes.md
+  - from-slim.md

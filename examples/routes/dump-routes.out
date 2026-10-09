@@ -1,0 +1,10 @@
+shop.user.registered                   CreateBonusAccount     EventLogger
+shop.user.registered                   SendWelcomeEmail       EventLogger
+shop.user.{user_id}.deactivated        RevokeTokens           EventLogger
+shop.order.created                     ReserveStock           EventLogger → SetUserData
+shop.order.created                     SendConfirmationEmail  EventLogger → SetUserData
+shop.order.{order_id}.paid             MarkOrderPaid          EventLogger → SetUserData → IdempotencyGuard
+shop.order.{order_id}.paid             AccrueBonuses          EventLogger → SetUserData → IdempotencyGuard
+shop.order.{order_id}.payment.#        AuditPayment           EventLogger → SetUserData → IdempotencyGuard
+shop.order.*.cancelled                 RefundPayment          EventLogger → SetUserData
+shop.order.{order_id}.unpaid_reminder  SendUnpaidReminder     EventLogger
