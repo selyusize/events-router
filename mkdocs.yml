@@ -1,0 +1,57 @@
+site_name: events-router
+site_description: Роутер событий для PHP в стиле Slim
+site_url: https://selyusize.github.io/events-router/
+repo_url: https://github.com/selyusize/events-router
+repo_name: selyusize/events-router
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: ru
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Тёмная тема
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Светлая тема
+
+plugins:
+  - search:
+      lang: [ru, en]
+  - awesome-nav
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  # Примеры вставляются из examples/: --8<-- "getting-started/check-installation.php:example"
+  - pymdownx.snippets:
+      base_path: [examples]
+      check_paths: true

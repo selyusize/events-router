@@ -1,6 +1,7 @@
 path:
   - src
   - tests
+  - examples
 jobs: 10
 cache-dir: var/cache/phplint
 extensions:

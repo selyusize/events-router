@@ -22,6 +22,7 @@ final class ArchitectureTest extends TestCase
 {
     private const SOURCE_DIR = __DIR__ . '/../../src';
     private const ROOT_NAMESPACE = 'Selyusize\EventsRouter\\';
+    private const ERRORS_DOCS_DIR = __DIR__ . '/../../docs/errors';
 
     public function testSourceDirectoryIsNotEmpty(): void
     {
@@ -63,6 +64,26 @@ final class ArchitectureTest extends TestCase
             $reflection->implementsInterface(ExceptionInterface::class),
             \sprintf('Исключение %s должно реализовывать %s', $name, ExceptionInterface::class),
         );
+    }
+
+    /**
+     * @param class-string $name
+     */
+    #[DataProvider('provideDeclarationCases')]
+    public function testExceptionsHaveDocumentationPage(string $name): void
+    {
+        $reflection = new ReflectionClass($name);
+
+        if (!$reflection->implementsInterface(Throwable::class) || $reflection->isInterface() || $reflection->isAbstract()) {
+            $this->expectNotToPerformAssertions();
+
+            return;
+        }
+
+        $slug = strtolower((string)preg_replace('/(?<!^)[A-Z]/', '-$0', $reflection->getShortName()));
+        $page = self::ERRORS_DOCS_DIR . '/' . $slug . '.md';
+
+        self::assertFileExists($page, \sprintf('Для исключения %s нужна страница docs/errors/%s.md, ссылка: Documentation::errorUrl(\'%s\')', $name, $slug, $slug));
     }
 
     /**

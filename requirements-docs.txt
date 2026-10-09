@@ -1,0 +1,4 @@
+# Зависимости сайта документации: pip install -r requirements-docs.txt
+# Zensical — генератор от авторов Material for MkDocs, читает mkdocs.yml.
+# Версия зафиксирована: проект до 1.0, обновляем осознанно.
+zensical==0.0.69

@@ -26,7 +26,12 @@ PHP 8.1+
 make install   # зависимости
 make check     # всё, что проверяет CI: phplint, php-cs-fixer, Psalm, PHPUnit
 make cs-fix    # исправить стиль кода
+
+make docs-install  # один раз: Python-окружение для сайта документации
+make docs-serve    # сайт документации локально: http://127.0.0.1:8000
 ```
+
+Документация: https://selyusize.github.io/events-router/
 
 В docker-окружении: `make check RUN="dl exec"`.
 

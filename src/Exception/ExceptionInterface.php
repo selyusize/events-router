@@ -12,11 +12,12 @@ use Throwable;
  * Позволяет поймать любую ошибку events-router одним catch,
  * не перехватывая исключения слушателей и самого приложения.
  *
- * @example
+ * ```php
  * try {
  *     $events->dispatch($event);
  * } catch (ExceptionInterface $error) {
  *     // ошибка конфигурации или работы роутера
  * }
+ * ```
  */
 interface ExceptionInterface extends Throwable {}

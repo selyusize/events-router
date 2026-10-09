@@ -1,0 +1,6 @@
+nav:
+  - index.md
+  - Руководство: guide
+  - Ошибки: errors
+  - Справочник API: api
+  - Разработка: contributing

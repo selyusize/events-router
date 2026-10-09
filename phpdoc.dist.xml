@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpdocumentor
+    configVersion="3"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://www.phpdoc.org"
+    xsi:noNamespaceSchemaLocation="https://docs.phpdoc.org/latest/phpdoc.xsd"
+>
+    <title>events-router API</title>
+    <paths>
+        <output>docs/api</output>
+        <cache>var/cache/phpdoc</cache>
+    </paths>
+    <version number="latest">
+        <api>
+            <source dsn=".">
+                <path>src</path>
+            </source>
+            <visibility>public</visibility>
+            <default-package-name>EventsRouter</default-package-name>
+            <include-source>false</include-source>
+        </api>
+    </version>
+    <template name="vendor/saggre/phpdocumentor-markdown/themes/markdown">
+        <parameter name="urlFileExtensions" value="yes"/>
+        <parameter name="includeTitle" value="yes"/>
+    </template>
+</phpdocumentor>
