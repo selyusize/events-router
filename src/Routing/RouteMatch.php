@@ -16,11 +16,11 @@ final class RouteMatch
      * @param array<non-empty-string, non-empty-string> $parameters
      */
     public function __construct(
-        private readonly Route $route,
+        private readonly CompiledRoute $route,
         private readonly array $parameters,
     ) {}
 
-    public function getRoute(): Route
+    public function getRoute(): CompiledRoute
     {
         return $this->route;
     }

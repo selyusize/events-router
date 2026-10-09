@@ -15,7 +15,7 @@
 | — | `*`, `#` | один сегмент / любое число сегментов |
 | `->add(A::class)->add(B::class)` | то же | B выполняется раньше A |
 | Action, `RequestHandlerInterface` | слушатель, `ListenerInterface` | `public static function handle(EventInterface $event): void` — статичный |
-| PSR-15 middleware | `MiddlewareInterface` | `process(EventInterface $event, EventHandlerInterface $next): void` |
+| PSR-15 middleware | `MiddlewareInterface` | `process(EventInterface $event, Closure $next): void`, вызов дальше — `$next($event)` |
 
 ## Главное отличие
 

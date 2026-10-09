@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/../../vendor/autoload.php';
 
 // --8<-- [start:example]
-use Selyusize\EventsRouter\Exception\ExceptionInterface;
+use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 
 echo interface_exists(ExceptionInterface::class)
     ? 'events-router установлен' . PHP_EOL

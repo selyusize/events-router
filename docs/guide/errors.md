@@ -3,8 +3,28 @@
 Исключение в слушателе или в его middleware не теряется и не ломает остальных слушателей:
 
 1. роутер перехватывает его и записывает в отчёт со статусом `Failed`;
-2. передаёт отчёт **обработчику ошибок**;
+2. передаёт его **обработчику ошибок**;
 3. поступает по **стратегии**: продолжить, остановиться или выбросить исключение наружу.
+
+## Ошибки внутри слушателя
+
+Обычно ошибку лучше поймать там, где понятно, что с ней делать, — в самом слушателе. Он знает, что пошло не так и что записать в лог:
+
+```php
+final class AccrueBonuses implements ListenerInterface
+{
+    public static function handle(EventInterface $event): void
+    {
+        try {
+            Container::get(BonusService::class)->accrue($event->getAttribute('order_id'));
+        } catch (BonusServiceUnavailable $error) {
+            Container::get(LoggerInterface::class)->warning('Бонусы не начислены', ['exception' => $error]);
+        }
+    }
+}
+```
+
+Такой слушатель завершается без исключения, и в отчёте у него статус `Handled`. Обработчик ошибок роутера — страховка для того, что слушатель не поймал.
 
 ## Обработчик ошибок
 
@@ -16,13 +36,15 @@ events-router: слушатель App\Listener\AccrueBonuses упал на со�
 
 Свой обработчик реализует `ErrorHandlerInterface` и получает исключение, событие с параметрами маршрута и класс упавшего слушателя.
 
---8<-- "errors/error-handling.php:handler"
-
 ```php
-$events->setErrorHandler(EchoErrorHandler::class);   // или объект: new EchoErrorHandler()
+--8<-- "errors/error-handling.php:handler"
 ```
 
-Имя класса разрешается так же, как у middleware: из контейнера, а если контейнер его не знает — через `new`.
+```php
+$events->setErrorHandler(new EchoErrorHandler());
+```
+
+Обработчик — объект: он настраивается один раз, рядом с созданием роутера.
 
 Для PSR-3 логгера есть готовый обработчик (нужен пакет `psr/log`):
 
@@ -36,13 +58,15 @@ $events->setErrorHandler(new PsrLoggerErrorHandler($logger));
 
 ## Стратегии
 
-| `ErrorStrategy` | Обработчик вызывается | Остальные слушатели | Исключение из `dispatch()` |
+| `ErrorStrategyEnum` | Обработчик вызывается | Остальные слушатели | Исключение из `dispatch()` |
 | --- | --- | --- | --- |
 | `Continue` — по умолчанию | да | вызываются | нет |
 | `Stop` | да | `Skipped` | нет |
 | `Throw` | нет | не вызываются | да, исходное |
 
+```php
 --8<-- "errors/error-handling.php:strategies"
+```
 
 ```text
 --8<-- "errors/error-handling.out"
@@ -54,7 +78,6 @@ $events->setErrorHandler(new PsrLoggerErrorHandler($logger));
 
 - **Исключение в middleware роутера** (`$events->add()`) не относится ни к одному слушателю и выходит из `dispatch()` при любой стратегии.
 - **Исключение в самом обработчике ошибок** тоже выходит наружу: сломанный обработчик лучше заметить сразу.
-- **Неверный обработчик** (класса нет, не тот интерфейс) — [`UnresolvableHandler`](../errors/unresolvable-handler.md) при первой ошибке слушателя.
 
 ## Остановка рассылки: PSR-14
 

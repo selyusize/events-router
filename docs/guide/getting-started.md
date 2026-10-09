@@ -15,15 +15,21 @@ composer require selyusize/events-router
 
 Слушатель — класс со статичным методом `handle()`:
 
+```php
 --8<-- "getting-started/quick-start.php:listener"
+```
 
 Маршруты — в отдельном файле, как в Slim:
 
+```php
 --8<-- "getting-started/events.php:example"
+```
 
 Создаём роутер, подключаем маршруты и рассылаем событие:
 
+```php
 --8<-- "getting-started/quick-start.php:dispatch"
+```
 
 ```text
 --8<-- "getting-started/quick-start.out"
@@ -31,7 +37,9 @@ composer require selyusize/events-router
 
 ## Проверка установки
 
+```php
 --8<-- "getting-started/check-installation.php:example"
+```
 
 Вывод:
 
@@ -45,4 +53,6 @@ composer require selyusize/events-router
 - [Топики и шаблоны](topics.md): как описать группу событий.
 - [Маршруты](routes.md): `listen()`, `group()`, `add()`.
 - [Рассылка](dispatching.md) и [обработка ошибок](errors.md).
-- [Воркеры](workers.md): `run()` и источники событий. Каждый пример на сайте — настоящий PHP-файл, который выполняется в CI, поэтому документация не может разойтись с кодом.
+- [Воркеры](workers.md): `run()` и источники событий.
+
+Каждый пример на сайте — настоящий PHP-файл, который выполняется в CI, поэтому документация не может разойтись с кодом.

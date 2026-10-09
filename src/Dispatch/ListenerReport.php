@@ -6,7 +6,7 @@ namespace Selyusize\EventsRouter\Dispatch;
 
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
-use Selyusize\EventsRouter\Routing\Route;
+use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Throwable;
 
 /**
@@ -16,14 +16,14 @@ use Throwable;
 final class ListenerReport
 {
     public function __construct(
-        private readonly Route $route,
+        private readonly CompiledRoute $route,
         private readonly EventInterface $event,
-        private readonly ListenerStatus $status,
+        private readonly ListenerStatusEnum $status,
         private readonly ?Throwable $error,
         private readonly float $duration,
     ) {}
 
-    public function getRoute(): Route
+    public function getRoute(): CompiledRoute
     {
         return $this->route;
     }
@@ -44,14 +44,14 @@ final class ListenerReport
         return $this->event;
     }
 
-    public function getStatus(): ListenerStatus
+    public function getStatus(): ListenerStatusEnum
     {
         return $this->status;
     }
 
     public function isFailed(): bool
     {
-        return $this->status === ListenerStatus::Failed;
+        return $this->status === ListenerStatusEnum::Failed;
     }
 
     /**

@@ -44,15 +44,15 @@ final class EchoErrorHandler implements ErrorHandlerInterface
 // --8<-- [end:handler]
 
 // --8<-- [start:strategies]
-use Selyusize\EventsRouter\Dispatch\ErrorStrategy;
+use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
 
-foreach ([ErrorStrategy::Continue, ErrorStrategy::Stop, ErrorStrategy::Throw] as $strategy) {
+foreach ([ErrorStrategyEnum::Continue, ErrorStrategyEnum::Stop, ErrorStrategyEnum::Throw] as $strategy) {
     echo $strategy->name, ':', PHP_EOL;
 
     $events = EventRouterFactory::create()
-        ->setErrorHandler(EchoErrorHandler::class)
+        ->setErrorHandler(new EchoErrorHandler())
         ->setErrorStrategy($strategy);
 
     $events->listen('order.paid', MarkOrderPaid::class);

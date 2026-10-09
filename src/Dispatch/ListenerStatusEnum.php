@@ -7,7 +7,7 @@ namespace Selyusize\EventsRouter\Dispatch;
 /**
  * Чем закончился вызов одного слушателя.
  */
-enum ListenerStatus
+enum ListenerStatusEnum
 {
     /** Слушатель отработал без исключений. */
     case Handled;

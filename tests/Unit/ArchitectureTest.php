@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
-use Selyusize\EventsRouter\Exception\ExceptionInterface;
+use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use SplFileInfo;
 use Throwable;
 
@@ -44,6 +44,37 @@ final class ArchitectureTest extends TestCase
         }
 
         self::assertTrue($reflection->isFinal(), \sprintf('Класс %s должен быть final', $name));
+    }
+
+    /**
+     * @param class-string $name
+     */
+    #[DataProvider('provideDeclarationCases')]
+    public function testInterfacesLiveInContract(string $name): void
+    {
+        if (!interface_exists($name)) {
+            $this->expectNotToPerformAssertions();
+
+            return;
+        }
+
+        self::assertStringStartsWith(self::ROOT_NAMESPACE . 'Contract\\', $name, \sprintf('Интерфейс %s должен лежать в src/Contract/', $name));
+    }
+
+    /**
+     * @param class-string $name
+     */
+    #[DataProvider('provideDeclarationCases')]
+    public function testEnumNamesEndWithEnum(string $name): void
+    {
+        $reflection = new ReflectionClass($name);
+        $hasSuffix = str_ends_with($reflection->getShortName(), 'Enum');
+
+        if ($reflection->isEnum()) {
+            self::assertTrue($hasSuffix, \sprintf('Enum %s должен называться ...Enum', $name));
+        } else {
+            self::assertFalse($hasSuffix, \sprintf('Суффикс Enum только у enum, а %s — не enum', $name));
+        }
     }
 
     /**

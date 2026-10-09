@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Selyusize\EventsRouter\Contract\Core;
 
+use Closure;
+
 /**
- * Middleware — обёртка вокруг слушателя, как PSR-15 middleware вокруг Action.
+ * Middleware — обёртка вокруг слушателя, как middleware в Slim и Laravel.
  *
- * Получает событие и следующее звено цепочки `$next` (другой middleware или слушатель). Может:
+ * Получает событие и `$next` — продолжение цепочки: следующий middleware или сам слушатель. Может:
  *
  * - сделать что-то до и после вызова (логирование, транзакция, замер времени);
- * - передать дальше изменённое событие (`$event->withAttribute(...)`);
+ * - передать дальше изменённое событие: `$next($event->withAttribute(...))`;
  * - не вызывать `$next` и тем самым не дать событию дойти до слушателя.
  *
  * Middleware навешиваются на маршруты и группы через `->add()`.
@@ -19,11 +21,11 @@ namespace Selyusize\EventsRouter\Contract\Core;
  * ```php
  * final class EventLogger implements MiddlewareInterface
  * {
- *     public function process(EventInterface $event, EventHandlerInterface $next): void
+ *     public function process(EventInterface $event, Closure $next): void
  *     {
  *         $this->logger->info('Событие ' . $event->getName());
  *
- *         $next->handle($event);
+ *         $next($event);
  *     }
  * }
  * ```
@@ -31,7 +33,9 @@ namespace Selyusize\EventsRouter\Contract\Core;
 interface MiddlewareInterface
 {
     /**
-     * Обработать событие и, если нужно, передать его следующему звену.
+     * Обработать событие и, если нужно, передать его дальше по цепочке.
+     *
+     * @param Closure(EventInterface): void $next
      */
-    public function process(EventInterface $event, EventHandlerInterface $next): void;
+    public function process(EventInterface $event, Closure $next): void;
 }

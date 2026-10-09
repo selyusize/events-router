@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Exception;
 
 use InvalidArgumentException;
+use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Documentation;
 
 /**

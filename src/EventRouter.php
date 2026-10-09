@@ -9,19 +9,18 @@ use Override;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Contract\Error\ErrorHandlerInterface;
+use Selyusize\EventsRouter\Contract\Routing\RouteCollectorInterface;
 use Selyusize\EventsRouter\Contract\Source\EventSourceInterface;
 use Selyusize\EventsRouter\Dispatch\DispatchReport;
-use Selyusize\EventsRouter\Dispatch\ErrorStrategy;
+use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
+use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Selyusize\EventsRouter\Routing\Route;
-use Selyusize\EventsRouter\Routing\RouteCollectorInterface;
-use Selyusize\EventsRouter\Routing\RouteDefinition;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Routing\RouteMatch;
 use Selyusize\EventsRouter\Routing\RouteTable;
 use Selyusize\EventsRouter\Service\Dispatcher;
-use Selyusize\EventsRouter\Service\RouteCompiler;
-use Selyusize\EventsRouter\Service\RouteMatcherInterface;
+use Selyusize\EventsRouter\Service\RouteTableBuilder;
 
 /**
  * Роутер событий — аналог `Slim\App`. Создаётся через EventRouterFactory.
@@ -51,7 +50,7 @@ use Selyusize\EventsRouter\Service\RouteMatcherInterface;
  * ```
  *
  * Сам роутер ничего не создаёт: объявления маршрутов хранит корневая группа,
- * таблицу собирает RouteCompiler, ищет RouteMatcher, рассылает Dispatcher.
+ * таблицу строит RouteTableBuilder, рассылает Dispatcher.
  */
 final class EventRouter implements RouteCollectorInterface
 {
@@ -71,8 +70,7 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function __construct(
         private readonly RouteGroup $routes,
-        private readonly RouteCompiler $compiler,
-        private readonly RouteMatcherInterface $matcher,
+        private readonly RouteTableBuilder $builder,
         private Dispatcher $dispatcher,
     ) {}
 
@@ -86,21 +84,15 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function setPrefix(string $prefix): self
     {
-        $table = $this->compiler->compile($this->routes, $prefix);
-
+        $this->table = $this->builder->build($this->routes, $prefix);
+        $this->tableRevision = $this->routes->getRevision();
         $this->prefix = $prefix;
-        $this->remember($table);
 
         return $this;
     }
 
-    public function getPrefix(): string
-    {
-        return $this->prefix;
-    }
-
     #[Override]
-    public function listen(string $pattern, string $listener): RouteDefinition
+    public function listen(string $pattern, string $listener): Route
     {
         return $this->routes->listen($pattern, $listener);
     }
@@ -128,23 +120,9 @@ final class EventRouter implements RouteCollectorInterface
     }
 
     /**
-     * Middleware роутера в порядке выполнения: первым идёт добавленный последним.
-     *
-     * @return list<class-string<MiddlewareInterface>|MiddlewareInterface>
-     */
-    public function getMiddleware(): array
-    {
-        return array_reverse($this->middleware);
-    }
-
-    /**
      * Куда отправлять ошибки слушателей. По умолчанию — PhpErrorLogHandler, в error_log().
-     *
-     * Имя класса разрешается так же, как middleware: из контейнера или через `new`.
-     *
-     * @param class-string<ErrorHandlerInterface>|ErrorHandlerInterface $handler
      */
-    public function setErrorHandler(ErrorHandlerInterface|string $handler): self
+    public function setErrorHandler(ErrorHandlerInterface $handler): self
     {
         $this->dispatcher = $this->dispatcher->withErrorHandler($handler);
 
@@ -152,9 +130,9 @@ final class EventRouter implements RouteCollectorInterface
     }
 
     /**
-     * Что делать после ошибки слушателя. По умолчанию — ErrorStrategy::Continue.
+     * Что делать после ошибки слушателя. По умолчанию — ErrorStrategyEnum::Continue.
      */
-    public function setErrorStrategy(ErrorStrategy $strategy): self
+    public function setErrorStrategy(ErrorStrategyEnum $strategy): self
     {
         $this->dispatcher = $this->dispatcher->withErrorStrategy($strategy);
 
@@ -178,13 +156,13 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function match(string $topic): array
     {
-        return $this->matcher->match($this->table(), $topic);
+        return $this->table()->match($topic);
     }
 
     /**
      * Все маршруты в порядке объявления, с полными шаблонами и middleware.
      *
-     * @return list<Route>
+     * @return list<CompiledRoute>
      */
     public function getRoutes(): array
     {
@@ -201,7 +179,7 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function dispatch(EventInterface $event): DispatchReport
     {
-        return $this->dispatcher->dispatch($event, $this->match($event->getName()), $this->getMiddleware());
+        return $this->dispatcher->dispatch($event, $this->match($event->getName()), array_reverse($this->middleware));
     }
 
     /**
@@ -239,18 +217,11 @@ final class EventRouter implements RouteCollectorInterface
      */
     private function table(): RouteTable
     {
-        if ($this->table !== null && $this->tableRevision === $this->routes->getRevision()) {
-            return $this->table;
+        if ($this->table === null || $this->tableRevision !== $this->routes->getRevision()) {
+            $this->table = $this->builder->build($this->routes, $this->prefix);
+            $this->tableRevision = $this->routes->getRevision();
         }
 
-        return $this->remember($this->compiler->compile($this->routes, $this->prefix));
-    }
-
-    private function remember(RouteTable $table): RouteTable
-    {
-        $this->table = $table;
-        $this->tableRevision = $this->routes->getRevision();
-
-        return $table;
+        return $this->table;
     }
 }

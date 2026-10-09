@@ -8,10 +8,7 @@ use Psr\Container\ContainerInterface;
 use Selyusize\EventsRouter\Routing\Revision;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Service\Dispatcher;
-use Selyusize\EventsRouter\Service\HandlerResolver;
-use Selyusize\EventsRouter\Service\ListenerInvoker;
-use Selyusize\EventsRouter\Service\RouteCompiler;
-use Selyusize\EventsRouter\Service\RouteMatcher;
+use Selyusize\EventsRouter\Service\RouteTableBuilder;
 
 /**
  * Создаёт роутер — аналог `AppFactory` в Slim. Единственное место,
@@ -25,19 +22,16 @@ use Selyusize\EventsRouter\Service\RouteMatcher;
 final class EventRouterFactory
 {
     /**
-     * @param ContainerInterface|null $container откуда брать middleware и обработчик ошибок;
+     * @param ContainerInterface|null $container откуда брать middleware, указанные именем класса;
      *                                           без контейнера или если он не знает класс — `new` без аргументов.
      *                                           Слушатели статичные и из контейнера не берутся.
      */
     public static function create(?ContainerInterface $container = null): EventRouter
     {
-        $resolver = new HandlerResolver($container);
-
         return new EventRouter(
             new RouteGroup(new Revision()),
-            new RouteCompiler(),
-            new RouteMatcher(),
-            new Dispatcher(new ListenerInvoker($resolver), $resolver),
+            new RouteTableBuilder(),
+            new Dispatcher($container),
         );
     }
 }

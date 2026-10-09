@@ -5,7 +5,6 @@ declare(strict_types=1);
 require __DIR__ . '/../../vendor/autoload.php';
 
 // --8<-- [start:listener]
-use Selyusize\EventsRouter\Contract\Core\EventHandlerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
@@ -23,11 +22,11 @@ final class MarkOrderPaid implements ListenerInterface
 // --8<-- [start:middleware]
 final class EventLogger implements MiddlewareInterface
 {
-    public function process(EventInterface $event, EventHandlerInterface $next): void
+    public function process(EventInterface $event, Closure $next): void
     {
         echo '→ ', $event->getName(), PHP_EOL;
 
-        $next->handle($event);
+        $next($event);
 
         echo '← ', $event->getName(), PHP_EOL;
     }
@@ -36,15 +35,8 @@ final class EventLogger implements MiddlewareInterface
 
 // --8<-- [start:pipeline]
 // Так роутер соединяет middleware и слушателя. Вручную это писать не придётся.
-$listener = new class implements EventHandlerInterface {
-    public function handle(EventInterface $event): void
-    {
-        MarkOrderPaid::handle($event);
-    }
-};
-
 (new EventLogger())->process(
     (new Event('shop.order.42.paid'))->withAttribute('order_id', '42'),
-    $listener,
+    MarkOrderPaid::handle(...),
 );
 // --8<-- [end:pipeline]

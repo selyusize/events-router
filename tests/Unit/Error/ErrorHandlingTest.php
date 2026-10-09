@@ -12,17 +12,14 @@ use RuntimeException;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Error\ErrorHandlerInterface;
-use Selyusize\EventsRouter\Dispatch\ErrorStrategy;
+use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Dispatch\ListenerReport;
-use Selyusize\EventsRouter\Dispatch\ListenerStatus;
+use Selyusize\EventsRouter\Dispatch\ListenerStatusEnum;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
-use Selyusize\EventsRouter\Exception\UnresolvableHandler;
 use Selyusize\EventsRouter\Service\Error\FailureFormatter;
 use Selyusize\EventsRouter\Service\Error\PsrLoggerErrorHandler;
-use Selyusize\EventsRouter\Tests\Fixture\ArrayContainer;
 use Selyusize\EventsRouter\Tests\Fixture\Journal;
-use Selyusize\EventsRouter\Tests\Fixture\NotAHandler;
 use Selyusize\EventsRouter\Tests\Fixture\Scripted\ScriptedListener;
 use Stringable;
 use Throwable;
@@ -84,41 +81,11 @@ final class ErrorHandlingTest extends TestCase
         self::assertSame(['first {}', 'ok {}', 'third {}'], Journal::$entries);
     }
 
-    public function testHandlerIsResolvedLikeMiddleware(): void
-    {
-        $handler = self::collectingHandler();
-
-        $events = EventRouterFactory::create(new ArrayContainer(['app.error_handler' => $handler]))->setErrorHandler('app.error_handler');
-        $events->listen('order.paid', self::listener('broken', new RuntimeException('сбой')));
-
-        $events->dispatch(new Event('order.paid'));
-
-        self::assertCount(1, $handler->failures);
-    }
-
-    public function testInvalidHandlerIsReportedOnFirstFailure(): void
-    {
-        /** @var class-string<ErrorHandlerInterface> $class */
-        $class = NotAHandler::class;
-
-        $events = EventRouterFactory::create()->setErrorHandler($class);
-        $events->listen('order.paid', self::listener('ok'));
-
-        self::assertFalse($events->dispatch(new Event('order.paid'))->hasFailures(), 'без ошибок обработчик не нужен');
-
-        $events->listen('order.paid', self::listener('broken', new RuntimeException('сбой')));
-
-        $this->expectException(UnresolvableHandler::class);
-        $this->expectExceptionMessage('Обработчик ошибок "' . NotAHandler::class . '" нельзя использовать: класс не реализует');
-
-        $events->dispatch(new Event('order.paid'));
-    }
-
     public function testStopStrategySkipsRemainingListeners(): void
     {
         $handler = self::collectingHandler();
 
-        $events = EventRouterFactory::create()->setErrorHandler($handler)->setErrorStrategy(ErrorStrategy::Stop);
+        $events = EventRouterFactory::create()->setErrorHandler($handler)->setErrorStrategy(ErrorStrategyEnum::Stop);
         $events->listen('order.paid', self::listener('first'));
         $events->listen('order.paid', self::listener('broken', new RuntimeException('сбой')));
         $events->listen('order.paid', self::listener('third'));
@@ -126,7 +93,7 @@ final class ErrorHandlingTest extends TestCase
         $report = $events->dispatch(new Event('order.paid'));
 
         self::assertSame(['first {}', 'broken {}'], Journal::$entries);
-        self::assertSame([ListenerStatus::Handled, ListenerStatus::Failed, ListenerStatus::Skipped], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Handled, ListenerStatusEnum::Failed, ListenerStatusEnum::Skipped], self::statuses($report->getListeners()));
         self::assertCount(1, $handler->failures);
     }
 
@@ -135,7 +102,7 @@ final class ErrorHandlingTest extends TestCase
         $handler = self::collectingHandler();
         $error = new RuntimeException('сбой');
 
-        $events = EventRouterFactory::create()->setErrorHandler($handler)->setErrorStrategy(ErrorStrategy::Throw);
+        $events = EventRouterFactory::create()->setErrorHandler($handler)->setErrorStrategy(ErrorStrategyEnum::Throw);
         $events->listen('order.paid', self::listener('broken', $error));
         $events->listen('order.paid', self::listener('never'));
 
@@ -154,7 +121,7 @@ final class ErrorHandlingTest extends TestCase
     {
         $handler = self::collectingHandler();
 
-        EventRouterFactory::create()->setErrorHandler($handler)->setErrorStrategy(ErrorStrategy::Throw);
+        EventRouterFactory::create()->setErrorHandler($handler)->setErrorStrategy(ErrorStrategyEnum::Throw);
 
         $events = EventRouterFactory::create()->setErrorHandler($handler);
         $events->listen('order.paid', self::listener('broken', new RuntimeException('сбой')));
@@ -191,7 +158,7 @@ final class ErrorHandlingTest extends TestCase
         $report = $events->dispatch(new Event('order.paid', $payload));
 
         self::assertSame(['first {}', 'stopper'], Journal::$entries);
-        self::assertSame([ListenerStatus::Handled, ListenerStatus::Handled, ListenerStatus::Skipped], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Handled, ListenerStatusEnum::Handled, ListenerStatusEnum::Skipped], self::statuses($report->getListeners()));
     }
 
     public function testAlreadyStoppedEventReachesNoListener(): void
@@ -209,7 +176,7 @@ final class ErrorHandlingTest extends TestCase
         $report = $events->dispatch(new Event('order.paid', $payload));
 
         self::assertSame([], Journal::$entries);
-        self::assertSame([ListenerStatus::Skipped], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Skipped], self::statuses($report->getListeners()));
     }
 
     public function testPsrLoggerHandlerLogsWithContext(): void
@@ -289,10 +256,10 @@ final class ErrorHandlingTest extends TestCase
     /**
      * @param list<ListenerReport> $reports
      *
-     * @return list<ListenerStatus>
+     * @return list<ListenerStatusEnum>
      */
     private static function statuses(array $reports): array
     {
-        return array_map(static fn (ListenerReport $report): ListenerStatus => $report->getStatus(), $reports);
+        return array_map(static fn (ListenerReport $report): ListenerStatusEnum => $report->getStatus(), $reports);
     }
 }

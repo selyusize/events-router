@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace Selyusize\EventsRouter\Tests\Unit\Dispatch;
 
+use Closure;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Selyusize\EventsRouter\Contract\Core\EventHandlerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Dispatch\ListenerReport;
-use Selyusize\EventsRouter\Dispatch\ListenerStatus;
+use Selyusize\EventsRouter\Dispatch\ListenerStatusEnum;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
-use Selyusize\EventsRouter\Exception\UnresolvableHandler;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Tests\Fixture\ArrayContainer;
 use Selyusize\EventsRouter\Tests\Fixture\Journal;
-use Selyusize\EventsRouter\Tests\Fixture\NotAHandler;
 use Selyusize\EventsRouter\Tests\Fixture\RecordingListener;
 use Selyusize\EventsRouter\Tests\Fixture\RecordingMiddleware;
 use Selyusize\EventsRouter\Tests\Fixture\Scripted\ScriptedListener;
@@ -32,7 +30,6 @@ final class DispatchTest extends TestCase
     {
         Journal::reset();
         ScriptedListener::reset();
-        RecordingMiddleware::$instances = 0;
     }
 
     public function testCallsListenersInDeclarationOrderWithOwnParameters(): void
@@ -52,7 +49,7 @@ final class DispatchTest extends TestCase
             'paid {"order_id":"42"}',
             'status {"id":"42","status":"paid"}',
         ], Journal::$entries);
-        self::assertSame([ListenerStatus::Handled, ListenerStatus::Handled, ListenerStatus::Handled], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Handled, ListenerStatusEnum::Handled, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
         self::assertSame(['order_id' => '42'], $report->getListeners()[1]->getEvent()->getAttributes());
         self::assertSame([], $report->getEvent()->getAttributes(), 'исходное событие не меняется');
     }
@@ -97,7 +94,7 @@ final class DispatchTest extends TestCase
         $report = $events->dispatch(new Event('order.paid'));
 
         self::assertSame(['first {}', 'broken {}', 'third {}'], Journal::$entries);
-        self::assertSame([ListenerStatus::Handled, ListenerStatus::Failed, ListenerStatus::Handled], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Handled, ListenerStatusEnum::Failed, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
         self::assertTrue($report->hasFailures());
         self::assertCount(1, $report->getFailures());
         self::assertSame($error, $report->getFailures()[0]->getError());
@@ -112,7 +109,7 @@ final class DispatchTest extends TestCase
 
         $report = $events->dispatch(new Event('order.paid'));
 
-        self::assertSame([ListenerStatus::Failed, ListenerStatus::Handled], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Failed, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
         self::assertSame(['→ broken', 'second {}'], Journal::$entries);
     }
 
@@ -125,7 +122,7 @@ final class DispatchTest extends TestCase
         $report = $events->dispatch(new Event('order.paid'));
 
         self::assertSame(['→ guard', '← guard', 'second {}'], Journal::$entries);
-        self::assertSame([ListenerStatus::Skipped, ListenerStatus::Handled], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Skipped, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
         self::assertFalse($report->hasFailures());
     }
 
@@ -139,7 +136,7 @@ final class DispatchTest extends TestCase
         $report = $events->dispatch(new Event('order.42'));
 
         self::assertSame(['→ guard', '← guard'], Journal::$entries);
-        self::assertSame([ListenerStatus::Skipped, ListenerStatus::Skipped], self::statuses($report->getListeners()));
+        self::assertSame([ListenerStatusEnum::Skipped, ListenerStatusEnum::Skipped], self::statuses($report->getListeners()));
         self::assertSame(['order_id' => '42'], $report->getListeners()[0]->getEvent()->getAttributes());
     }
 
@@ -189,16 +186,14 @@ final class DispatchTest extends TestCase
         self::assertSame(['RecordingListener order.paid'], Journal::$entries);
     }
 
-    public function testCreatesMiddlewareWithoutContainerAndReusesInstance(): void
+    public function testCreatesMiddlewareByClassNameWithoutContainer(): void
     {
         $events = EventRouterFactory::create();
         $events->listen('order.paid', RecordingListener::class)->add(RecordingMiddleware::class);
 
         $events->dispatch(new Event('order.paid'));
-        $events->dispatch(new Event('order.paid'));
 
-        self::assertSame(['RecordingMiddleware', 'RecordingListener order.paid', 'RecordingMiddleware', 'RecordingListener order.paid'], Journal::$entries);
-        self::assertSame(1, RecordingMiddleware::$instances);
+        self::assertSame(['RecordingMiddleware', 'RecordingListener order.paid'], Journal::$entries);
     }
 
     public function testTakesMiddlewareFromContainer(): void
@@ -209,7 +204,6 @@ final class DispatchTest extends TestCase
         $events->dispatch(new Event('order.paid'));
 
         self::assertSame(['→ from-container', 'RecordingListener order.paid', '← from-container'], Journal::$entries);
-        self::assertSame(0, RecordingMiddleware::$instances);
     }
 
     public function testFallsBackToNewWhenContainerDoesNotKnowMiddleware(): void
@@ -227,45 +221,29 @@ final class DispatchTest extends TestCase
         /** @var class-string<ListenerInterface> $missing */
         $missing = 'App\Missing\Listener';
 
-        $error = $this->failedListenerError($missing);
-
-        self::assertStringContainsString('Слушатель "App\Missing\Listener" нельзя использовать: класс не найден', $error->getMessage());
-    }
-
-    public function testListenerClassWithoutInterfaceFails(): void
-    {
-        /** @var class-string<ListenerInterface> $class */
-        $class = NotAHandler::class;
-
-        self::assertStringContainsString('не реализует ' . ListenerInterface::class, $this->failedListenerError($class)->getMessage());
-    }
-
-    public function testInvalidMiddlewareFailsOnlyItsListener(): void
-    {
-        /** @var class-string<MiddlewareInterface> $class */
-        $class = NotAHandler::class;
-
         $events = EventRouterFactory::create();
-        $events->listen('order.paid', self::listener('guarded'))->add($class);
+        $events->listen('order.paid', $missing);
         $events->listen('order.paid', self::listener('next'));
 
         $report = $events->dispatch(new Event('order.paid'));
-        $error = $report->getListeners()[0]->getError();
 
-        self::assertSame(['next {}'], Journal::$entries);
-        self::assertInstanceOf(UnresolvableHandler::class, $error);
-        self::assertStringContainsString('Middleware "' . NotAHandler::class . '" нельзя использовать: класс не реализует', $error->getMessage());
+        self::assertSame([ListenerStatusEnum::Failed, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
+        self::assertStringContainsString('App\Missing\Listener', (string)$report->getListeners()[0]->getError()?->getMessage());
     }
 
-    public function testContainerReturningWrongMiddlewareTypeFails(): void
+    public function testUnknownMiddlewareClassFailsOnlyItsListener(): void
     {
-        $events = EventRouterFactory::create(new ArrayContainer([RecordingMiddleware::class => 'не объект']));
-        $events->listen('order.paid', self::listener('guarded'))->add(RecordingMiddleware::class);
+        /** @var class-string<MiddlewareInterface> $missing */
+        $missing = 'App\Missing\Middleware';
 
-        $error = $events->dispatch(new Event('order.paid'))->getListeners()[0]->getError();
+        $events = EventRouterFactory::create();
+        $events->listen('order.paid', self::listener('guarded'))->add($missing);
+        $events->listen('order.paid', self::listener('next'));
 
-        self::assertInstanceOf(UnresolvableHandler::class, $error);
-        self::assertStringContainsString('контейнер вернул string', $error->getMessage());
+        $report = $events->dispatch(new Event('order.paid'));
+
+        self::assertSame(['next {}'], Journal::$entries);
+        self::assertSame([ListenerStatusEnum::Failed, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
     }
 
     public function testReportKeepsRouteEventAndDuration(): void
@@ -283,26 +261,6 @@ final class DispatchTest extends TestCase
         self::assertSame($class, $listener->getListener());
         self::assertSame('42', $listener->getEvent()->getAttribute('order_id'));
         self::assertGreaterThanOrEqual(0.0, $listener->getDuration());
-    }
-
-    /**
-     * Слушатель упал, следующий отработал; вернуть ошибку упавшего.
-     *
-     * @param class-string<ListenerInterface> $listener
-     */
-    private function failedListenerError(string $listener): UnresolvableHandler
-    {
-        $events = EventRouterFactory::create();
-        $events->listen('order.paid', $listener);
-        $events->listen('order.paid', self::listener('next'));
-
-        $report = $events->dispatch(new Event('order.paid'));
-        $error = $report->getListeners()[0]->getError();
-
-        self::assertSame([ListenerStatus::Failed, ListenerStatus::Handled], self::statuses($report->getListeners()));
-        self::assertInstanceOf(UnresolvableHandler::class, $error);
-
-        return $error;
     }
 
     /**
@@ -337,7 +295,7 @@ final class DispatchTest extends TestCase
                 private readonly ?RuntimeException $error,
             ) {}
 
-            public function process(EventInterface $event, EventHandlerInterface $next): void
+            public function process(EventInterface $event, Closure $next): void
             {
                 Journal::write('→ ' . $this->name);
 
@@ -350,7 +308,7 @@ final class DispatchTest extends TestCase
                 }
 
                 if ($this->callNext) {
-                    $next->handle($event);
+                    $next($event);
                 }
 
                 Journal::write('← ' . $this->name);
@@ -361,10 +319,10 @@ final class DispatchTest extends TestCase
     /**
      * @param list<ListenerReport> $reports
      *
-     * @return list<ListenerStatus>
+     * @return list<ListenerStatusEnum>
      */
     private static function statuses(array $reports): array
     {
-        return array_map(static fn (ListenerReport $report): ListenerStatus => $report->getStatus(), $reports);
+        return array_map(static fn (ListenerReport $report): ListenerStatusEnum => $report->getStatus(), $reports);
     }
 }

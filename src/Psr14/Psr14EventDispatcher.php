@@ -62,21 +62,14 @@ final class Psr14EventDispatcher implements EventDispatcherInterface
     #[Override]
     public function dispatch(object $event): object
     {
-        $this->router->dispatch($this->toEvent($event));
-
-        return $event;
-    }
-
-    private function toEvent(object $event): EventInterface
-    {
         if ($event instanceof EventInterface) {
-            return $event;
-        }
-
-        if ($this->topic === null) {
+            $this->router->dispatch($event);
+        } elseif ($this->topic !== null) {
+            $this->router->dispatch(new Event(($this->topic)($event), $event));
+        } else {
             throw UnmappableEvent::forObject($event);
         }
 
-        return new Event(($this->topic)($event), $event);
+        return $event;
     }
 }

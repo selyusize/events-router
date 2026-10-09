@@ -6,26 +6,25 @@ namespace Selyusize\EventsRouter\Service;
 
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
-use Selyusize\EventsRouter\Routing\Route;
-use Selyusize\EventsRouter\Routing\RouteDefinition;
+use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Routing\RouteTable;
 use Selyusize\EventsRouter\Topic\TopicPattern;
 
 /**
- * Собирает из дерева групп готовую таблицу маршрутов.
+ * Строит из дерева групп таблицу собранных маршрутов.
  *
  * Обходит группы в порядке объявления, склеивает префиксы и шаблон,
  * разворачивает middleware групп и маршрута в один список в порядке выполнения.
  *
  * @internal
  */
-final class RouteCompiler
+final class RouteTableBuilder
 {
     /**
      * @throws InvalidTopicPattern если с префиксом роутера какой-то шаблон стал некорректным
      */
-    public function compile(RouteGroup $root, string $prefix): RouteTable
+    public function build(RouteGroup $root, string $prefix): RouteTable
     {
         $routes = [];
         $this->collect($root, $prefix, [], $routes);
@@ -35,7 +34,7 @@ final class RouteCompiler
 
     /**
      * @param list<class-string<MiddlewareInterface>|MiddlewareInterface> $outerMiddleware middleware внешних групп
-     * @param list<Route> $routes
+     * @param list<CompiledRoute> $routes
      */
     private function collect(RouteGroup $group, string $path, array $outerMiddleware, array &$routes): void
     {
@@ -48,21 +47,11 @@ final class RouteCompiler
                 continue;
             }
 
-            $routes[] = $this->route($child, $path, $middleware, \count($routes));
+            $routes[] = new CompiledRoute(
+                TopicPattern::fromString(RouteGroup::join($path, $child->getPattern())),
+                $child->getListener(),
+                [...$middleware, ...$child->getMiddleware()],
+            );
         }
-    }
-
-    /**
-     * @param list<class-string<MiddlewareInterface>|MiddlewareInterface> $groupMiddleware
-     */
-    private function route(RouteDefinition $definition, string $path, array $groupMiddleware, int $index): Route
-    {
-        return new Route(
-            TopicPattern::fromString(RouteGroup::join($path, $definition->getPattern())),
-            $definition->getListener(),
-            [...$groupMiddleware, ...$definition->getMiddleware()],
-            $definition->getName(),
-            $index,
-        );
     }
 }

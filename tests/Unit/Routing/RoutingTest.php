@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Selyusize\EventsRouter\Tests\Unit\Routing;
 
+use Closure;
 use Fixture\Listener;
 use Fixture\Middleware;
 use PHPUnit\Framework\TestCase;
-use Selyusize\EventsRouter\Contract\Core\EventHandlerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\EventRouter;
 use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
-use Selyusize\EventsRouter\Routing\Route;
+use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 
 /**
@@ -122,7 +122,7 @@ final class RoutingTest extends TestCase
         self::assertSame(['Late'], self::dump($events)[0][2]);
     }
 
-    public function testRoutesAreKeptInDeclarationOrderWithIndex(): void
+    public function testRoutesAreKeptInDeclarationOrder(): void
     {
         $events = EventRouterFactory::create();
         $events->listen('b', Listener\Second::class);
@@ -131,8 +131,7 @@ final class RoutingTest extends TestCase
         });
         $events->listen('a.x', Listener\Fourth::class);
 
-        self::assertSame([0, 1, 2], array_map(static fn (Route $route): int => $route->getIndex(), $events->getRoutes()));
-        self::assertSame(['b', 'a.x', 'a.x'], array_map(static fn (Route $route): string => $route->getPattern()->getPattern(), $events->getRoutes()));
+        self::assertSame(['b', 'a.x', 'a.x'], array_map(static fn (CompiledRoute $route): string => $route->getPattern()->getPattern(), $events->getRoutes()));
     }
 
     public function testPrefixCanBeSetAfterRoutesAndChanged(): void
@@ -143,7 +142,6 @@ final class RoutingTest extends TestCase
         });
 
         $events->setPrefix('shop');
-        self::assertSame('shop', $events->getPrefix());
         self::assertSame('shop.order.created', $events->getRoutes()[0]->getPattern()->getPattern());
 
         $events->setPrefix('');
@@ -163,7 +161,6 @@ final class RoutingTest extends TestCase
             self::assertStringContainsString('параметр {id} встречается дважды', $error->getMessage());
         }
 
-        self::assertSame('shop', $events->getPrefix());
         self::assertSame('shop.{id}', $events->getRoutes()[0]->getPattern()->getPattern());
     }
 
@@ -207,28 +204,23 @@ final class RoutingTest extends TestCase
         });
     }
 
-    public function testRouteDefinitionAndCompiledRoute(): void
+    public function testRouteAndCompiledRoute(): void
     {
         $middleware = new class implements MiddlewareInterface {
-            public function process(EventInterface $event, EventHandlerInterface $next): void {}
+            public function process(EventInterface $event, Closure $next): void {}
         };
 
         $events = EventRouterFactory::create();
         $definition = $events->listen('order.paid', Listener\MarkOrderPaid::class)
-            ->add($middleware)
-            ->name('order.mark_paid');
+            ->add($middleware);
 
         self::assertSame('order.paid', $definition->getPattern());
         self::assertSame(Listener\MarkOrderPaid::class, $definition->getListener());
         self::assertSame([$middleware], $definition->getMiddleware());
-        self::assertSame('order.mark_paid', $definition->getName());
 
         $route = $events->getRoutes()[0];
         self::assertSame(Listener\MarkOrderPaid::class, $route->getListener());
         self::assertSame([$middleware], $route->getMiddleware());
-        self::assertSame('order.mark_paid', $route->getName());
-
-        self::assertNull($events->listen('order.created', Listener\Any::class)->getName());
     }
 
     public function testRouteTableIsRebuiltOnlyAfterChanges(): void
@@ -239,9 +231,9 @@ final class RoutingTest extends TestCase
         $first = $events->getRoutes();
         self::assertSame($first, $events->getRoutes(), 'без изменений таблица та же');
 
-        $definition->name('order.paid');
+        $definition->add(Middleware\Late::class);
         self::assertNotSame($first[0], $events->getRoutes()[0]);
-        self::assertSame('order.paid', $events->getRoutes()[0]->getName());
+        self::assertSame([Middleware\Late::class], $events->getRoutes()[0]->getMiddleware());
     }
 
     public function testGroupExposesPrefixMiddlewareAndChildren(): void
@@ -270,7 +262,7 @@ final class RoutingTest extends TestCase
     {
         $short = static fn (object|string $class, string $namespace): string => str_replace($namespace, '', \is_string($class) ? $class : $class::class);
 
-        return array_map(static fn (Route $route): array => [
+        return array_map(static fn (CompiledRoute $route): array => [
             $route->getPattern()->getPattern(),
             $short($route->getListener(), 'Fixture\Listener\\'),
             array_map(static fn (object|string $middleware): string => $short($middleware, 'Fixture\Middleware\\'), $route->getMiddleware()),

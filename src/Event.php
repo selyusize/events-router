@@ -45,7 +45,23 @@ final class Event implements EventInterface
         private readonly mixed $payload = null,
         private array $attributes = [],
     ) {
-        $this->name = self::validateName($name);
+        if ($name === '') {
+            throw InvalidEventName::because($name, 'имя пустое');
+        }
+
+        if (preg_match('/\s/u', $name) === 1) {
+            throw InvalidEventName::because($name, 'имя содержит пробельные символы');
+        }
+
+        if (strpbrk($name, '*#{}') !== false) {
+            throw InvalidEventName::because($name, 'символы *, #, {, } допустимы только в шаблонах маршрутов, а не в имени события');
+        }
+
+        if (\in_array('', explode('.', $name), true)) {
+            throw InvalidEventName::because($name, 'пустой сегмент: точка в начале, в конце или две точки подряд');
+        }
+
+        $this->name = $name;
     }
 
     #[Override]
@@ -79,31 +95,5 @@ final class Event implements EventInterface
         $copy->attributes[$name] = $value;
 
         return $copy;
-    }
-
-    /**
-     * @return non-empty-string
-     *
-     * @throws InvalidEventName
-     */
-    private static function validateName(string $name): string
-    {
-        if ($name === '') {
-            throw InvalidEventName::because($name, 'имя пустое');
-        }
-
-        if (preg_match('/\s/u', $name) === 1) {
-            throw InvalidEventName::because($name, 'имя содержит пробельные символы');
-        }
-
-        if (strpbrk($name, '*#{}') !== false) {
-            throw InvalidEventName::because($name, 'символы *, #, {, } допустимы только в шаблонах маршрутов, а не в имени события');
-        }
-
-        if (\in_array('', explode('.', $name), true)) {
-            throw InvalidEventName::because($name, 'пустой сегмент: точка в начале, в конце или две точки подряд');
-        }
-
-        return $name;
     }
 }

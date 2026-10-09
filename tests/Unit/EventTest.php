@@ -6,9 +6,9 @@ namespace Selyusize\EventsRouter\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Documentation;
 use Selyusize\EventsRouter\Event;
-use Selyusize\EventsRouter\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Exception\InvalidEventName;
 use stdClass;
 

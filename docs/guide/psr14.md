@@ -2,7 +2,9 @@
 
 `Psr14EventDispatcher` — роутер под стандартным интерфейсом `Psr\EventDispatcher\EventDispatcherInterface`. Нужен, когда код или сторонняя библиотека знает только PSR-14.
 
+```php
 --8<-- "psr14/psr14.php:example"
+```
 
 ```text
 --8<-- "psr14/psr14.out"

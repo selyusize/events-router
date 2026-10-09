@@ -4,39 +4,53 @@ declare(strict_types=1);
 
 namespace Selyusize\EventsRouter\Routing;
 
+use Override;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
-use Selyusize\EventsRouter\Topic\TopicPattern;
+use Selyusize\EventsRouter\Contract\Routing\RouteInterface;
 
 /**
- * Готовый маршрут из таблицы: полный шаблон, слушатель и все его middleware.
+ * Маршрут: то, что возвращает `listen()`, — как Route в Slim.
  *
- * Неизменяемый: собирается из объявлений, когда роутер строит таблицу маршрутов.
- * Приоритетов нет: слушатели одного события вызываются по возрастанию `getIndex()`,
- * то есть строго в порядке объявления маршрутов в файле.
+ * Настраивается цепочкой; при сборке таблицы превращается в CompiledRoute:
+ *
+ * ```php
+ * $group->listen('{order_id}.paid', MarkOrderPaid::class)
+ *     ->add(IdempotencyGuard::class);
+ * ```
  */
-final class Route
+final class Route implements RouteInterface
 {
     /**
-     * @internal маршруты создаёт RouteCompiler
-     *
-     * @param class-string<ListenerInterface> $listener
-     * @param list<class-string<MiddlewareInterface>|MiddlewareInterface> $middleware в порядке выполнения
-     * @param non-empty-string|null $name
-     * @param int $index порядковый номер объявления, начиная с 0
+     * @var list<class-string<MiddlewareInterface>|MiddlewareInterface>
      */
-    public function __construct(
-        private readonly TopicPattern $pattern,
-        private readonly string $listener,
-        private readonly array $middleware,
-        private readonly ?string $name,
-        private readonly int $index,
-    ) {}
+    private array $middleware = [];
 
     /**
-     * Полный шаблон: префикс роутера, префиксы групп и шаблон из `listen()`.
+     * @internal объявления создаёт группа
+     *
+     * @param string $pattern шаблон относительно префикса группы
+     * @param class-string<ListenerInterface> $listener
      */
-    public function getPattern(): TopicPattern
+    public function __construct(
+        private readonly string $pattern,
+        private readonly string $listener,
+        private readonly Revision $revision,
+    ) {}
+
+    #[Override]
+    public function add(MiddlewareInterface|string $middleware): self
+    {
+        $this->middleware[] = $middleware;
+        $this->revision->bump();
+
+        return $this;
+    }
+
+    /**
+     * Шаблон относительно префикса группы, как передан в `listen()`.
+     */
+    public function getPattern(): string
     {
         return $this->pattern;
     }
@@ -50,29 +64,12 @@ final class Route
     }
 
     /**
-     * Все middleware маршрута в порядке выполнения: от внешней группы к маршруту,
-     * внутри каждого уровня — от добавленного последним к добавленному первым.
+     * Middleware маршрута в порядке выполнения: первым идёт добавленный последним.
      *
      * @return list<class-string<MiddlewareInterface>|MiddlewareInterface>
      */
     public function getMiddleware(): array
     {
-        return $this->middleware;
-    }
-
-    /**
-     * @return non-empty-string|null
-     */
-    public function getName(): ?string
-    {
-        return $this->name;
-    }
-
-    /**
-     * Порядковый номер объявления: слушатели одного события вызываются по возрастанию.
-     */
-    public function getIndex(): int
-    {
-        return $this->index;
+        return array_reverse($this->middleware);
     }
 }

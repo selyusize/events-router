@@ -6,6 +6,7 @@ namespace Selyusize\EventsRouter\Routing;
 
 use Override;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
+use Selyusize\EventsRouter\Contract\Routing\RouteGroupInterface;
 use Selyusize\EventsRouter\Topic\TopicPattern;
 
 /**
@@ -25,10 +26,10 @@ use Selyusize\EventsRouter\Topic\TopicPattern;
  *     ->add(EventLogger::class);   // выполнится первым
  * ```
  */
-final class RouteGroup implements RouteCollectorInterface
+final class RouteGroup implements RouteGroupInterface
 {
     /**
-     * @var list<RouteDefinition|self>
+     * @var list<Route|self>
      */
     private array $children = [];
 
@@ -50,13 +51,13 @@ final class RouteGroup implements RouteCollectorInterface
     ) {}
 
     #[Override]
-    public function listen(string $pattern, string $listener): RouteDefinition
+    public function listen(string $pattern, string $listener): Route
     {
         // Проверяем шаблон сразу, чтобы ошибка указывала на строку с listen().
         // Префикс роутера добавится при сборке таблицы.
         TopicPattern::fromString(self::join($this->path, $pattern));
 
-        $route = new RouteDefinition($pattern, $listener, $this->revision);
+        $route = new Route($pattern, $listener, $this->revision);
         $this->children[] = $route;
         $this->revision->bump();
 
@@ -75,13 +76,7 @@ final class RouteGroup implements RouteCollectorInterface
         return $group;
     }
 
-    /**
-     * Добавить middleware всем маршрутам группы, включая вложенные группы.
-     *
-     * Добавленный последним выполняется первым, как в Slim.
-     *
-     * @param class-string<MiddlewareInterface>|MiddlewareInterface $middleware
-     */
+    #[Override]
     public function add(MiddlewareInterface|string $middleware): self
     {
         $this->middleware[] = $middleware;
@@ -112,7 +107,7 @@ final class RouteGroup implements RouteCollectorInterface
     /**
      * Маршруты и вложенные группы в порядке объявления.
      *
-     * @return list<RouteDefinition|self>
+     * @return list<Route|self>
      */
     public function getChildren(): array
     {

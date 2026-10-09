@@ -41,16 +41,26 @@ make docs-serve     # локальный сервер с автообновле�
 ```php
 <?php
 
-require __DIR__ . '/../../../vendor/autoload.php';   // на странице этого не будет
+require __DIR__ . '/../../vendor/autoload.php';   // на странице этого не будет
 
 // --8<-- [start:example]
 // ...код, который увидит читатель...
 // --8<-- [end:example]
 ```
 
-```markdown
+На странице вставка **всегда внутри блока кода**, иначе Markdown разберёт PHP как текст. Это проверяет `tests/Docs/MarkdownSnippetsTest.php`:
+
+~~~~markdown
+```php
 ;--8<-- "getting-started/check-installation.php:example"
 ```
+
+```text
+;--8<-- "getting-started/check-installation.out"
+```
+~~~~
+
+`<?php` во вставке не нужен: подсветка PHP включена и без него (`startinline` в `mkdocs.yml`).
 
 ## Страницы ошибок
 

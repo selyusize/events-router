@@ -26,7 +26,9 @@ shop.order.42.paid
 | `*` | любой один сегмент | `42`, `abc` |
 | `#` | **ноль** или больше любых сегментов | ничего, `42`, `42.payment.failed` |
 
+```php
 --8<-- "topics/matching.php:example"
+```
 
 ```text
 --8<-- "topics/matching.out"
@@ -57,7 +59,9 @@ shop.order.42.paid
 
 Ошибка в шаблоне видна сразу при регистрации маршрута, а не когда придёт событие:
 
+```php
 --8<-- "topics/invalid-pattern.php:example"
+```
 
 ```text
 --8<-- "topics/invalid-pattern.out"

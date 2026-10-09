@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Selyusize\EventsRouter\Exception;
+namespace Selyusize\EventsRouter\Contract\Exception;
 
 use Throwable;
 

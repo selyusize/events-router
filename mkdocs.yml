@@ -48,6 +48,12 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.highlight:
       anchor_linenums: true
+      # примеры вставляются без <?php — подсвечиваем PHP и без него
+      extend_pygments_lang:
+        - name: php
+          lang: php
+          options:
+            startinline: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true

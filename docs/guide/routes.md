@@ -2,11 +2,15 @@
 
 Маршруты событий описываются в отдельном файле, так же как HTTP-маршруты в Slim. Файл возвращает функцию, которая получает роутер.
 
+```php
 --8<-- "routes/events.php:example"
+```
 
 Чтобы проверить, что получилось, переберите маршруты:
 
+```php
 --8<-- "routes/dump-routes.php:example"
+```
 
 ```text
 --8<-- "routes/dump-routes.out"
@@ -16,7 +20,9 @@
 
 `match()` показывает, какие маршруты сработают на событие: **все** подходящие, строго в порядке объявления, у каждого свои параметры.
 
+```php
 --8<-- "routes/match.php:example"
+```
 
 ```text
 --8<-- "routes/match.out"
@@ -63,7 +69,9 @@ $events->group('order', static function (RouteGroup $group): void {
 1. внешняя группа → вложенная группа → маршрут;
 2. на одном уровне — **последний добавленный выполняется первым**.
 
+```php
 --8<-- "routes/middleware-order.php:example"
+```
 
 ```text
 --8<-- "routes/middleware-order.out"
@@ -74,14 +82,6 @@ $events->group('order', static function (RouteGroup $group): void {
 ## `setPrefix()` — общий префикс всех топиков
 
 Аналог `setBasePath()` в Slim. Можно вызвать в любой момент: шаблоны уже объявленных маршрутов пересоберутся. Пустая строка убирает префикс.
-
-## `name()` — имя маршрута
-
-```php
-$group->listen('{order_id}.paid', Listener\Order\MarkOrderPaid::class)->name('order.mark_paid');
-```
-
-Имя пригодится в логах и отладке, а позже — для асинхронной обработки.
 
 ## Когда проверяются ошибки
 

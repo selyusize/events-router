@@ -7,7 +7,7 @@ namespace Selyusize\EventsRouter\Dispatch;
 /**
  * Как рассылка реагирует на ошибку слушателя.
  */
-enum ErrorStrategy
+enum ErrorStrategyEnum
 {
     /**
      * Передать ошибку обработчику и продолжить: остальные слушатели будут вызваны.

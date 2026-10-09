@@ -22,7 +22,9 @@ make cs-fix    # исправить стиль кода
 Часть соглашений проверяется тестом `tests/Unit/ArchitectureTest.php`:
 
 - конкретные классы объявлены `final`;
-- исключения реализуют `ExceptionInterface`;
+- исключения реализуют `Contract\Exception\ExceptionInterface`;
+- интерфейсы лежат только в `src/Contract/`;
+- enum называются `...Enum`;
 - у каждого исключения есть страница в `docs/errors/`;
 - путь к файлу соответствует неймспейсу (PSR-4).
 
@@ -36,15 +38,16 @@ Contract ← Topic ← Routing ← Dispatch ← Service ← EventRouter + EventR
 
 | Компонент | Что внутри |
 | --- | --- |
-| `Contract/` | интерфейсы для пользователя: событие, слушатель, middleware, обработчик ошибок, источник событий |
+| `Contract/` | **все** интерфейсы библиотеки: событие, слушатель, middleware, обработчик ошибок, источник событий, объявление маршрутов, общий интерфейс исключений |
 | `Topic/` | шаблоны топиков |
-| `Routing/` | данные маршрутов: объявления (`RouteGroup`, `RouteDefinition`) и готовая таблица (`RouteTable`, `Route`, `RouteMatch`) |
+| `Routing/` | данные маршрутов: объявления (`RouteGroup`, `Route`) и собранная таблица (`RouteTable` с поиском `match()`, `CompiledRoute`, `RouteMatch`) |
 | `Dispatch/` | данные рассылки: отчёты, статусы, стратегия ошибок |
-| `Service/` | вся работа: сборка таблицы, поиск, рассылка, создание middleware, запись ошибок |
+| `Service/` | работа: `RouteTableBuilder` строит таблицу, `Dispatcher` рассылает, обработчики ошибок пишут ошибки |
 | `Source/` | реализации источников событий для воркеров (`InMemoryEventSource`); зависят только от `Contract/` |
 | `EventRouter`, `EventRouterFactory` | фасад и единственное место, где части роутера создаются и связываются |
 | `Psr14/` | адаптер PSR-14 поверх `EventRouter` — внешний слой, как и сам роутер |
-| `Exception/`, `Documentation` | листья: ни от кого не зависят |
+| `Exception/` | исключения; зависят только от `Contract/` (`ExceptionInterface`) и `Documentation` |
+| `Documentation` | лист: ни от кого не зависит |
 
 Границы проверяет `tests/Unit/BoundariesTest.php`: импорт «против течения» валит тесты.
 

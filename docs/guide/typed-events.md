@@ -2,15 +2,21 @@
 
 Payload события может быть любым объектом. Удобный приём — DTO с именованным конструктором, который сам собирает имя события:
 
+```php
 --8<-- "typed-events/order-paid.php:dto"
+```
 
 Имя события пишется в одном месте, рядом с данными, а не в каждом вызове `dispatch()`:
 
+```php
 --8<-- "typed-events/order-paid.php:dispatch"
+```
 
 Слушатель получает тот же объект через `getPayload()`:
 
+```php
 --8<-- "typed-events/order-paid.php:listener"
+```
 
 ```text
 --8<-- "typed-events/order-paid.out"

@@ -5,7 +5,6 @@ declare(strict_types=1);
 require __DIR__ . '/../../vendor/autoload.php';
 
 // --8<-- [start:classes]
-use Selyusize\EventsRouter\Contract\Core\EventHandlerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
@@ -36,10 +35,10 @@ final class SendReceipt implements ListenerInterface
 
 final class EventLogger implements MiddlewareInterface
 {
-    public function process(EventInterface $event, EventHandlerInterface $next): void
+    public function process(EventInterface $event, Closure $next): void
     {
         echo '→ ', $event->getName(), PHP_EOL;
-        $next->handle($event);
+        $next($event);
         echo '← ', $event->getName(), PHP_EOL;
     }
 }

@@ -9,7 +9,7 @@ use RuntimeException;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Dispatch\DispatchReport;
-use Selyusize\EventsRouter\Dispatch\ErrorStrategy;
+use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Source\InMemoryEventSource;
@@ -75,7 +75,7 @@ final class RunTest extends TestCase
     {
         $source = new InMemoryEventSource(new Event('order.broken'), new Event('order.next'));
 
-        $events = EventRouterFactory::create()->setErrorStrategy(ErrorStrategy::Throw);
+        $events = EventRouterFactory::create()->setErrorStrategy(ErrorStrategyEnum::Throw);
         $events->listen('order.broken', ScriptedListener::define(static function (): void {
             throw new RuntimeException('сбой');
         }));

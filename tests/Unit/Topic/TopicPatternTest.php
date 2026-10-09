@@ -6,8 +6,8 @@ namespace Selyusize\EventsRouter\Tests\Unit\Topic;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Documentation;
-use Selyusize\EventsRouter\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
 use Selyusize\EventsRouter\Topic\TopicPattern;
 
@@ -25,7 +25,6 @@ final class TopicPatternTest extends TestCase
         $compiled = TopicPattern::fromString($pattern);
 
         self::assertSame($expected, $compiled->match($topic));
-        self::assertSame($expected !== null, $compiled->matches($topic));
     }
 
     /**
@@ -125,28 +124,10 @@ final class TopicPatternTest extends TestCase
         }
     }
 
-    public function testExposesPatternAndParameterNames(): void
+    public function testExposesPattern(): void
     {
         $pattern = TopicPattern::fromString('user.{user_id}.order.{order_id:\d+}.#');
 
         self::assertSame('user.{user_id}.order.{order_id:\d+}.#', $pattern->getPattern());
-        self::assertSame(['user_id', 'order_id'], $pattern->getParameterNames());
-    }
-
-    #[DataProvider('provideIsExactCases')]
-    public function testIsExact(string $pattern, bool $expected): void
-    {
-        self::assertSame($expected, TopicPattern::fromString($pattern)->isExact());
-    }
-
-    /**
-     * @return iterable<string, array{string, bool}>
-     */
-    public static function provideIsExactCases(): iterable
-    {
-        yield 'только литералы' => ['bitrix.main.OnAfterUserAdd', true];
-        yield 'параметр' => ['order.{order_id}', false];
-        yield '*' => ['order.*', false];
-        yield '#' => ['order.#', false];
     }
 }

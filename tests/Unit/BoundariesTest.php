@@ -35,7 +35,7 @@ final class BoundariesTest extends TestCase
     private const ALLOWED = [
         'Contract' => [],
         'Documentation' => [],
-        'Exception' => ['Documentation'],
+        'Exception' => ['Contract', 'Documentation'],
         'Event' => ['Contract', 'Exception'],
         'Topic' => ['Exception'],
         'Routing' => ['Contract', 'Topic', 'Exception'],
