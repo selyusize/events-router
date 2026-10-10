@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-10-10
+
+### Исправлено
+
+- Документация, «Производительность»: таблица смешивала время целого запроса и одной рассылки. Теперь запрос PHP-FPM и воркер — отдельными таблицами, запрос разложен на подготовку и рассылки по замерам, указано, при скольких разных событиях за запрос Symfony выходит вперёд (больше 7).
+- Бенчмарк: отдельный сценарий «подготовка без рассылок», время выводится на одну операцию в микросекундах.
+- README: строка о производительности называет и выигрыш, и проигрыш.
+
 ## [0.5.0] — 2026-10-10
 
 ### Добавлено
@@ -81,7 +89,8 @@
 - **PSR-14.** `Psr14EventDispatcher`: роутер под `Psr\EventDispatcher\EventDispatcherInterface`, объекты без `EventInterface` превращаются в события через явный маппер. Ошибка — `UnmappableEvent`.
 - **Документация** на GitHub Pages: руководство с исполняемыми примерами, справочник API из PHPDoc, страница на каждое исключение.
 
-[Unreleased]: https://github.com/selyusize/events-router/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/selyusize/events-router/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/selyusize/events-router/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/selyusize/events-router/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/selyusize/events-router/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/selyusize/events-router/compare/v0.2.0...v0.3.0
