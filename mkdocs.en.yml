@@ -1,15 +1,17 @@
 site_name: events-router
-site_description: Роутер событий для PHP в стиле Slim
-site_url: https://selyusize.github.io/events-router/
+site_description: Slim-style event router for PHP
+site_url: https://selyusize.github.io/events-router/en/
 repo_url: https://github.com/selyusize/events-router
 repo_name: selyusize/events-router
-edit_uri: edit/main/docs/
+edit_uri: edit/main/docs-en/
 
-docs_dir: docs
+# Английская версия сайта: собирается после русской в site/en
+docs_dir: docs-en
+site_dir: site/en
 
 theme:
   name: material
-  language: ru
+  language: en
   features:
     - navigation.sections
     - navigation.indexes
@@ -25,17 +27,17 @@ theme:
       primary: indigo
       toggle:
         icon: material/weather-night
-        name: Тёмная тема
+        name: Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: indigo
       toggle:
         icon: material/weather-sunny
-        name: Светлая тема
+        name: Light mode
 
 plugins:
   - search:
-      lang: [ru, en]
+      lang: en
   - awesome-nav
 
 markdown_extensions:
@@ -48,7 +50,7 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.highlight:
       anchor_linenums: true
-      # примеры вставляются без <?php — подсвечиваем PHP и без него
+      # examples are inserted without <?php, so highlight PHP without it
       extend_pygments_lang:
         - name: php
           lang: php
@@ -57,9 +59,9 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
-  # Примеры вставляются из examples/: --8<-- "getting-started/check-installation.php:example"
+  # Examples are inserted from examples/en/: --8<-- "getting-started/check-installation.php:example"
   - pymdownx.snippets:
-      base_path: [examples, .]
+      base_path: [examples/en, .]
       check_paths: true
 
 extra:

@@ -1,0 +1,7 @@
+order.{order_id}.paid       order.42.paid             yes, {"order_id":"42"}
+order.{order_id:\d+}.paid   order.abc.paid            no
+order.*.cancelled           order.42.cancelled        yes
+order.*.cancelled           order.42.items.cancelled  no
+order.#                     order                     yes
+order.#                     order.42.payment.failed   yes
+order.{order_id}.payment.#  order.42.payment.failed   yes, {"order_id":"42"}

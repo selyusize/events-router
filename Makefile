@@ -3,7 +3,7 @@
 RUN ?=
 COMPOSER = $(RUN) composer
 
-.PHONY: install update lint cs cs-fix psalm test test-coverage check bench clear docs-install docs-api docs docs-serve
+.PHONY: install update lint cs cs-fix psalm test test-coverage check bench clear docs-install docs-api docs docs-serve docs-serve-en
 
 install:
 	$(COMPOSER) install
@@ -49,8 +49,14 @@ docs-install:
 docs-api:
 	$(RUN) tools/build-api-docs.sh
 
+## Русская версия в site/, английская после неё — в site/en
 docs: docs-api
 	$(ZENSICAL) build --strict --clean
+	$(ZENSICAL) build -f mkdocs.en.yml --strict --clean
 
 docs-serve: docs-api
 	$(ZENSICAL) serve
+
+## Английская версия сайта локально
+docs-serve-en:
+	$(ZENSICAL) serve -f mkdocs.en.yml

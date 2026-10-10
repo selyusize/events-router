@@ -1,0 +1,16 @@
+Continue:
+    MarkOrderPaid
+    error: AccrueBonuses — bonus service unavailable
+    SendReceipt
+    MarkOrderPaid: Handled
+    AccrueBonuses: Failed
+    SendReceipt: Handled
+Stop:
+    MarkOrderPaid
+    error: AccrueBonuses — bonus service unavailable
+    MarkOrderPaid: Handled
+    AccrueBonuses: Failed
+    SendReceipt: Skipped
+Throw:
+    MarkOrderPaid
+    exception from dispatch(): bonus service unavailable

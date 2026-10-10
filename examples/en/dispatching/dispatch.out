@@ -1,0 +1,7 @@
+→ order.42.paid
+    MarkOrderPaid: order 42
+    SendReceipt: receipt for $1500
+← order.42.paid
+MarkOrderPaid: Handled
+AccrueBonuses: Failed — bonus service unavailable
+SendReceipt: Handled

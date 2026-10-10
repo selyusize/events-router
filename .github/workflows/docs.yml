@@ -40,6 +40,10 @@ jobs:
       - name: Сборка сайта (битые ссылки валят сборку)
         run: zensical build --strict --clean
 
+      # После русской: она с --clean очищает site/ целиком
+      - name: Английская версия сайта в site/en
+        run: zensical build -f mkdocs.en.yml --strict --clean
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site

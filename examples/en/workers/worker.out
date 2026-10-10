@@ -1,0 +1,5 @@
+    reserving stock for order 41
+order.41.created — ok
+order.42.paid — error: bonus service unavailable
+catalog.updated — no listeners
+events processed: 3

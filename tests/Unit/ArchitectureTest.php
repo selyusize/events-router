@@ -23,6 +23,7 @@ final class ArchitectureTest extends TestCase
     private const SOURCE_DIR = __DIR__ . '/../../src';
     private const ROOT_NAMESPACE = 'Selyusize\EventsRouter\\';
     private const ERRORS_DOCS_DIR = __DIR__ . '/../../docs/errors';
+    private const ERRORS_DOCS_EN_DIR = __DIR__ . '/../../docs-en/errors';
 
     public function testSourceDirectoryIsNotEmpty(): void
     {
@@ -115,6 +116,8 @@ final class ArchitectureTest extends TestCase
         $page = self::ERRORS_DOCS_DIR . '/' . $slug . '.md';
 
         self::assertFileExists($page, \sprintf('Для исключения %s нужна страница docs/errors/%s.md, ссылка: Documentation::errorUrl(\'%s\')', $name, $slug, $slug));
+        // с locale = en ссылка ведёт на английскую версию сайта
+        self::assertFileExists(self::ERRORS_DOCS_EN_DIR . '/' . $slug . '.md', \sprintf('Для исключения %s нужна и английская страница docs-en/errors/%s.md', $name, $slug));
     }
 
     /**

@@ -79,6 +79,19 @@ require __DIR__ . '/../../vendor/autoload.php';   // на странице эт�
 
 Для каждого исключения `src/**/SomethingWrong.php` нужна страница `docs/errors/something-wrong.md`: что произошло, почему, как исправить. Текст исключения содержит ссылку на неё через `Documentation::errorUrl('something-wrong')`. Без страницы `ArchitectureTest` не пройдёт.
 
+## Английская версия
+
+Английский сайт собирается из `docs-en/` конфигом `mkdocs.en.yml` в `site/en` и публикуется по адресу `/events-router/en/`. Переключатель языка в шапке — `extra.alternate` в обоих конфигах.
+
+- У каждой страницы `docs/` есть пара в `docs-en/` с тем же путём: якоря и ссылки между сайтами совпадают.
+- Примеры — в `examples/en/`, та же структура, что у `examples/`. Вместо автозагрузчика английский пример подключает `examples/en/bootstrap.php`: он включает `'locale' => 'en'`, чтобы и вывод библиотеки был на английском. `ExamplesTest` прогоняет их так же, как русские.
+- Справочник API и список изменений есть только на русском: английский сайт ссылается на них.
+
+```bash
+make docs           # обе версии
+make docs-serve-en  # английская версия локально
+```
+
 ## Публикация
 
 `.github/workflows/docs.yml` собирает сайт на каждый pull request и при push в `main` публикует его на GitHub Pages. В настройках репозитория один раз нужно выбрать **Settings → Pages → Source: GitHub Actions**.

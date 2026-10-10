@@ -1,0 +1,1 @@
+Invalid topic pattern "order-{order_id}.paid": parameter in segment "order-{order_id}" must take the whole segment, e.g. order.{order_id}. See https://selyusize.github.io/events-router/en/errors/invalid-topic-pattern/

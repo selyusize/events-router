@@ -3,6 +3,7 @@
 # не попадают в архив пакета при composer install --prefer-dist
 /.github                export-ignore
 /docs                   export-ignore
+/docs-en                export-ignore
 /examples               export-ignore
 /requirements-docs.txt  export-ignore
 /tests export-ignore
@@ -16,6 +17,7 @@
 /phpunit.xml.dist       export-ignore
 /psalm.xml              export-ignore
 /mkdocs.yml             export-ignore
+/mkdocs.en.yml          export-ignore
 /phpdoc.dist.xml        export-ignore
 /tools                  export-ignore
 /plan.md                export-ignore

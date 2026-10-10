@@ -1,0 +1,6 @@
+info/2026-10-10.log
+[2026-10-10 14:03:12] INFO events-router: shop.order.42.paid, listeners: 2, 0.4 ms {"listeners":[{"listener":"MarkOrderPaid","status":"Handled","ms":0.1,"attributes":{"order_id":"42"}},{"listener":"AccrueBonuses","status":"Failed","ms":0.1,"attributes":{"order_id":"42"},"error":"RuntimeException: bonus service unavailable"}]}
+
+error/2026-10-10.log
+[2026-10-10 14:03:12] ERROR events-router: listener AccrueBonuses failed on event shop.order.42.paid: RuntimeException: bonus service unavailable in … {"exception":{"class":"RuntimeException","message":"bonus service unavailable","file":"…","trace":"…"},"event":"shop.order.42.paid","attributes":{"order_id":"42"},"listener":"AccrueBonuses"}
+

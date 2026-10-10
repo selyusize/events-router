@@ -19,34 +19,36 @@ use SplFileInfo;
  */
 final class MarkdownSnippetsTest extends TestCase
 {
-    private const DOCS_DIR = __DIR__ . '/../../docs';
+    private const DOCS_DIRS = [__DIR__ . '/../../docs', __DIR__ . '/../../docs-en'];
 
     public function testPhpSnippetsAreInsideCodeBlocks(): void
     {
-        $root = realpath(self::DOCS_DIR);
-        self::assertIsString($root);
-
         $bare = [];
 
-        /** @var SplFileInfo $file */
-        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS)) as $file) {
-            $relative = substr($file->getPathname(), \strlen($root) + 1);
+        foreach (self::DOCS_DIRS as $directory) {
+            $root = realpath($directory);
+            self::assertIsString($root);
 
-            if ($file->getExtension() !== 'md' || str_starts_with($relative, 'api' . \DIRECTORY_SEPARATOR)) {
-                continue;
-            }
+            /** @var SplFileInfo $file */
+            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS)) as $file) {
+                $relative = substr($file->getPathname(), \strlen($root) + 1);
 
-            $insideCode = false;
-
-            foreach (file($file->getPathname(), FILE_IGNORE_NEW_LINES) ?: [] as $number => $line) {
-                if (str_starts_with(ltrim($line), '```')) {
-                    $insideCode = !$insideCode;
-
+                if ($file->getExtension() !== 'md' || str_starts_with($relative, 'api' . \DIRECTORY_SEPARATOR)) {
                     continue;
                 }
 
-                if (!$insideCode && preg_match('/^\s*--8<-- "[^"]+\.php[:"]/', $line) === 1) {
-                    $bare[] = $relative . ':' . ($number + 1);
+                $insideCode = false;
+
+                foreach (file($file->getPathname(), FILE_IGNORE_NEW_LINES) ?: [] as $number => $line) {
+                    if (str_starts_with(ltrim($line), '```')) {
+                        $insideCode = !$insideCode;
+
+                        continue;
+                    }
+
+                    if (!$insideCode && preg_match('/^\s*--8<-- "[^"]+\.php[:"]/', $line) === 1) {
+                        $bare[] = basename($root) . \DIRECTORY_SEPARATOR . $relative . ':' . ($number + 1);
+                    }
                 }
             }
         }
