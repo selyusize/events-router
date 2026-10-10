@@ -3,7 +3,7 @@
 RUN ?=
 COMPOSER = $(RUN) composer
 
-.PHONY: install update lint cs cs-fix psalm test test-coverage check clear docs-install docs-api docs docs-serve
+.PHONY: install update lint cs cs-fix psalm test test-coverage check bench clear docs-install docs-api docs docs-serve
 
 install:
 	$(COMPOSER) install
@@ -31,6 +31,10 @@ test-coverage:
 
 ## Всё, что проверяет CI, одной командой
 check: lint cs psalm test
+
+## Бенчмарк против symfony/event-dispatcher, с OPcache как на проде
+bench:
+	$(RUN) php -d opcache.enable_cli=1 -d opcache.file_update_protection=0 benchmarks/bench.php
 
 clear:
 	rm -rf var/ site/ docs/api/

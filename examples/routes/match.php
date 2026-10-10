@@ -8,7 +8,7 @@ require __DIR__ . '/../../vendor/autoload.php';
 use Selyusize\EventsRouter\EventRouterFactory;
 
 $events = EventRouterFactory::create();
-(require __DIR__ . '/events.php')($events);
+$events->loadRoutes(require __DIR__ . '/events.php');
 
 foreach (['shop.order.created', 'shop.order.42.paid', 'shop.order.42.payment.failed', 'shop.catalog.updated'] as $topic) {
     echo $topic, PHP_EOL;

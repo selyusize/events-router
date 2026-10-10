@@ -2,6 +2,7 @@ nav:
   - index.md
   - container.md
   - logging.md
+  - cache.md
   - errors.md
   - workers.md
   - bitrix.md

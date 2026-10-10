@@ -11,6 +11,7 @@ use Selyusize\EventsRouter\Routing\Revision;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Service\Dispatcher;
 use Selyusize\EventsRouter\Service\Log\FileLogger;
+use Selyusize\EventsRouter\Service\RouteCache;
 use Selyusize\EventsRouter\Service\RouteTableBuilder;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
@@ -23,8 +24,9 @@ use Webmozart\Assert\InvalidArgumentException;
  * $events = EventRouterFactory::create($container, [
  *     'log_path' => '/var/www/local/logs/events-router/{level}/{date}.log',
  *     'log_dispatch' => true,
+ *     'route_cache_file' => '/var/www/local/var/cache/events-routes.php',   // в проде
  * ]);
- * (require __DIR__ . '/events.php')($events);
+ * $events->loadRoutes(require __DIR__ . '/events.php');
  * ```
  */
 final class EventRouterFactory
@@ -32,7 +34,7 @@ final class EventRouterFactory
     /**
      * Ключи конфига, в snake_case, как `config['events_router']` в стартовой архитектуре.
      */
-    private const CONFIG_KEYS = ['log_path', 'log_dispatch'];
+    private const CONFIG_KEYS = ['log_path', 'log_dispatch', 'route_cache_file'];
 
     /**
      * @param ContainerInterface|null $container контейнер проекта: из него создаются middleware,
@@ -43,6 +45,8 @@ final class EventRouterFactory
      *                                     по умолчанию `<временная папка>/events-router/{date}.log`
      *                                     - `log_dispatch` — писать в лог каждую рассылку: событие, атрибуты,
      *                                     слушателей со статусом и временем; по умолчанию `false`
+     *                                     - `route_cache_file` — PHP-файл кэша маршрутов для loadRoutes();
+     *                                     по умолчанию кэша нет
      *
      * @throws InvalidConfig если в конфиге неизвестный ключ или значение не того типа
      */
@@ -50,6 +54,7 @@ final class EventRouterFactory
     {
         $logPath = $config['log_path'] ?? sys_get_temp_dir() . '/events-router/{date}.log';
         $logDispatch = $config['log_dispatch'] ?? false;
+        $routeCacheFile = $config['route_cache_file'] ?? null;
 
         try {
             foreach (array_keys($config) as $key) {
@@ -58,6 +63,7 @@ final class EventRouterFactory
 
             Assert::stringNotEmpty($logPath, 'log_path должен быть непустой строкой, передано %s');
             Assert::boolean($logDispatch, 'log_dispatch должен быть true или false, передано %s');
+            Assert::nullOrStringNotEmpty($routeCacheFile, 'route_cache_file должен быть непустой строкой, передано %s');
         } catch (InvalidArgumentException $error) {
             throw InvalidConfig::because($error->getMessage());
         }
@@ -66,10 +72,14 @@ final class EventRouterFactory
             Container::set($container);
         }
 
+        $revision = new Revision();
+
         return new EventRouter(
-            new RouteGroup(new Revision()),
+            new RouteGroup($revision),
+            $revision,
             new RouteTableBuilder(),
             new Dispatcher(Container::getInstance(), new FileLogger($logPath), $logDispatch),
+            $routeCacheFile === null ? null : new RouteCache($routeCacheFile),
         );
     }
 }

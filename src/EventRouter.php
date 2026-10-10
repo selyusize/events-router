@@ -14,14 +14,17 @@ use Selyusize\EventsRouter\Contract\Routing\RouteCollectorInterface;
 use Selyusize\EventsRouter\Contract\Source\EventSourceInterface;
 use Selyusize\EventsRouter\Dispatch\DispatchReport;
 use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
+use Selyusize\EventsRouter\Exception\InvalidRoute;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
 use Selyusize\EventsRouter\Routing\CompiledRoute;
+use Selyusize\EventsRouter\Routing\Revision;
 use Selyusize\EventsRouter\Routing\Route;
 use Selyusize\EventsRouter\Routing\RouteAssert;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Routing\RouteMatch;
 use Selyusize\EventsRouter\Routing\RouteTable;
 use Selyusize\EventsRouter\Service\Dispatcher;
+use Selyusize\EventsRouter\Service\RouteCache;
 use Selyusize\EventsRouter\Service\RouteTableBuilder;
 
 /**
@@ -46,7 +49,7 @@ use Selyusize\EventsRouter\Service\RouteTableBuilder;
  *
  * ```php
  * $events = EventRouterFactory::create($container);
- * (require __DIR__ . '/events.php')($events);
+ * $events->loadRoutes(require __DIR__ . '/events.php');
  *
  * $report = $events->dispatch(new Event('shop.order.42.paid', ['amount' => 1500]));
  * ```
@@ -63,18 +66,88 @@ final class EventRouter implements RouteCollectorInterface
      */
     private array $middleware = [];
 
+    /**
+     * Middleware роутера в порядке выполнения: собирается при первой рассылке после add().
+     *
+     * @var list<class-string<MiddlewareInterface>|MiddlewareInterface>|null
+     */
+    private ?array $middlewareInOrder = null;
+
     private ?RouteTable $table = null;
 
     private int $tableRevision = -1;
+
+    /**
+     * Идёт loadRoutes(): с включённым кэшем маршруты можно объявлять только в это время.
+     */
+    private bool $loading = false;
+
+    private bool $loaded = false;
+
+    /**
+     * Таблица взята из кэша: объявлений в группах нет, пересобирать её не из чего.
+     */
+    private bool $fromCache = false;
 
     /**
      * @internal используйте EventRouterFactory::create()
      */
     public function __construct(
         private readonly RouteGroup $routes,
+        private readonly Revision $revision,
         private readonly RouteTableBuilder $builder,
         private Dispatcher $dispatcher,
+        private readonly ?RouteCache $cache = null,
     ) {}
+
+    /**
+     * Подключить маршруты — обычно файл маршрутов: `$events->loadRoutes(require __DIR__ . '/events.php')`.
+     *
+     * Без кэша просто вызывает `$routes($this)`. С кэшем (`route_cache_file` в EventRouterFactory::create()):
+     *
+     * - файла кэша нет — вызывает `$routes`, собирает таблицу и записывает её в файл;
+     * - файл есть — берёт таблицу и middleware роутера из него, а `$routes` не вызывает вовсе:
+     *   не выполняется файл маршрутов и не загружаются классы слушателей.
+     *
+     * С кэшем маршруты объявляются только внутри `$routes`, а loadRoutes() вызывается один раз.
+     * Кэш не обновляется сам: после изменения маршрутов файл кэша нужно удалить.
+     *
+     * @param callable(EventRouter): void $routes
+     *
+     * @throws InvalidRoute если с кэшем loadRoutes() вызван второй раз или middleware добавлен объектом
+     */
+    public function loadRoutes(callable $routes): self
+    {
+        if ($this->cache !== null && $this->loaded) {
+            throw InvalidRoute::because('с кэшем маршрутов loadRoutes() вызывается один раз: подключите все маршруты из одного файла');
+        }
+
+        $this->loaded = true;
+        $cached = $this->cache?->load();
+
+        if ($cached !== null) {
+            [$this->table, $middleware] = $cached;
+            $this->middleware = [...$this->middleware, ...$middleware];
+            $this->middlewareInOrder = null;
+            $this->fromCache = true;
+
+            return $this;
+        }
+
+        // Middleware роутера из файла маршрутов тоже попадут в кэш: при чтении из кэша файл не выполняется
+        $before = \count($this->middleware);
+        $this->loading = true;
+
+        try {
+            $routes($this);
+        } finally {
+            $this->loading = false;
+        }
+
+        $this->cache?->save($this->table(), \array_slice($this->middleware, $before));
+
+        return $this;
+    }
 
     /**
      * Общий префикс всех топиков — аналог `setBasePath()` в Slim.
@@ -86,8 +159,10 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function setPrefix(string $prefix): self
     {
+        $this->assertDeclaring();
+
         $this->table = $this->builder->build($this->routes, $prefix);
-        $this->tableRevision = $this->routes->getRevision();
+        $this->tableRevision = $this->revision->get();
         $this->prefix = $prefix;
 
         return $this;
@@ -96,12 +171,16 @@ final class EventRouter implements RouteCollectorInterface
     #[Override]
     public function listen(string $pattern, string $listener): Route
     {
+        $this->assertDeclaring();
+
         return $this->routes->listen($pattern, $listener);
     }
 
     #[Override]
     public function group(string $prefix, callable $routes): RouteGroup
     {
+        $this->assertDeclaring();
+
         return $this->routes->group($prefix, $routes);
     }
 
@@ -119,6 +198,7 @@ final class EventRouter implements RouteCollectorInterface
         RouteAssert::middleware($middleware);
 
         $this->middleware[] = $middleware;
+        $this->middlewareInOrder = null;
 
         return $this;
     }
@@ -194,7 +274,7 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function dispatch(EventInterface $event): DispatchReport
     {
-        return $this->dispatcher->dispatch($event, $this->match($event->getName()), array_reverse($this->middleware));
+        return $this->dispatcher->dispatch($event, $this->table(), $this->middlewareInOrder ??= array_reverse($this->middleware));
     }
 
     /**
@@ -232,11 +312,24 @@ final class EventRouter implements RouteCollectorInterface
      */
     private function table(): RouteTable
     {
-        if ($this->table === null || $this->tableRevision !== $this->routes->getRevision()) {
+        if ($this->table === null || (!$this->fromCache && $this->tableRevision !== $this->revision->get())) {
             $this->table = $this->builder->build($this->routes, $this->prefix);
-            $this->tableRevision = $this->routes->getRevision();
+            $this->tableRevision = $this->revision->get();
         }
 
         return $this->table;
+    }
+
+    /**
+     * С кэшем маршруты, объявленные вне loadRoutes(), в проде пропали бы: файл кэша есть, и
+     * loadRoutes() не выполняет ничего. Поэтому такие объявления — ошибка сразу, и на разработке тоже.
+     *
+     * @throws InvalidRoute
+     */
+    private function assertDeclaring(): void
+    {
+        if ($this->cache !== null && !$this->loading) {
+            throw InvalidRoute::because('с кэшем маршрутов (route_cache_file) маршруты объявляются только внутри loadRoutes()');
+        }
     }
 }

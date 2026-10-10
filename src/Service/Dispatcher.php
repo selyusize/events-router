@@ -9,13 +9,14 @@ use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\LoggerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
+use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Contract\Error\ErrorHandlerInterface;
 use Selyusize\EventsRouter\Dispatch\DispatchReport;
 use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Dispatch\ListenerReport;
-use Selyusize\EventsRouter\Dispatch\ListenerStatusEnum;
 use Selyusize\EventsRouter\Routing\RouteMatch;
+use Selyusize\EventsRouter\Routing\RouteTable;
 use Selyusize\EventsRouter\Service\Error\FailureFormatter;
 use Selyusize\EventsRouter\Service\Error\PsrLoggerErrorHandler;
 use Throwable;
@@ -70,76 +71,30 @@ final class Dispatcher
     }
 
     /**
-     * @param list<RouteMatch> $matches
      * @param list<class-string<MiddlewareInterface>|MiddlewareInterface> $routerMiddleware
      */
-    public function dispatch(EventInterface $event, array $matches, array $routerMiddleware): DispatchReport
+    public function dispatch(EventInterface $event, RouteTable $table, array $routerMiddleware): DispatchReport
     {
-        /** @var list<ListenerReport>|null $reports */
-        $reports = null;
-        $dispatchStart = hrtime(true);
+        $dispatchStart = $this->logDispatch ? hrtime(true) : 0;
+        $plan = $table->plan($event->getName());
 
-        $this->chain($routerMiddleware, function (EventInterface $event) use ($matches, &$reports): void {
-            $reports = [];
-            $stopped = false;
+        if ($routerMiddleware === []) {
+            $report = $this->deliver($event, $event, $plan);
+        } else {
+            $report = null;
+            $this->chain($routerMiddleware, function (EventInterface $delivered) use ($event, $plan, &$report): void {
+                $report = $this->deliver($event, $delivered, $plan);
+            })($event);
 
-            foreach ($matches as $match) {
-                $route = $match->getRoute();
-                $listenerEvent = self::withParameters($event, $match);
-                $stopped = $stopped || self::isStopped($listenerEvent) || self::isStopped($listenerEvent->getPayload());
-
-                if ($stopped) {
-                    $reports[] = new ListenerReport($route, $listenerEvent, ListenerStatusEnum::Skipped, null, 0.0);
-
-                    continue;
-                }
-
-                $reached = false;
-                $error = null;
-                $start = hrtime(true);
-
-                try {
-                    $this->chain($route->getMiddleware(), static function (EventInterface $event) use ($route, &$reached): void {
-                        $reached = true;
-                        $route->getListener()::handle($event);
-                    })($listenerEvent);
-                } catch (Throwable $exception) {
-                    $error = $exception;
-                }
-
-                $status = match (true) {
-                    $error !== null => ListenerStatusEnum::Failed,
-                    $reached => ListenerStatusEnum::Handled,
-                    default => ListenerStatusEnum::Skipped,
-                };
-                $reports[] = new ListenerReport($route, $listenerEvent, $status, $error, (float)(hrtime(true) - $start) / 1e9);
-
-                if ($error === null) {
-                    continue;
-                }
-
-                if ($this->errorStrategy === ErrorStrategyEnum::Throw) {
-                    throw $error;
-                }
-
-                ($this->errorHandler ?? new PsrLoggerErrorHandler($this->logger))->handle($error, $listenerEvent, $route->getListener());
-                $stopped = $this->errorStrategy === ErrorStrategyEnum::Stop;
-            }
-        })($event);
-
-        // middleware роутера не вызвал $next — ни один слушатель не получил событие
-        $reports ??= array_map(
-            static fn (RouteMatch $match): ListenerReport => new ListenerReport($match->getRoute(), self::withParameters($event, $match), ListenerStatusEnum::Skipped, null, 0.0),
-            $matches,
-        );
-
-        $report = new DispatchReport($event, $reports);
+            // middleware роутера не вызвал $next — ни один слушатель не получил событие
+            $report ??= new DispatchReport($event, null, $plan['matches'], [], array_fill(0, \count($plan['matches']), true));
+        }
 
         if ($this->logDispatch) {
             $this->logger->info(\sprintf(
                 'events-router: %s, слушателей: %d, %.1f мс',
                 $event->getName(),
-                \count($reports),
+                \count($plan['matches']),
                 (float)(hrtime(true) - $dispatchStart) / 1e6,
             ), array_filter([
                 'attributes' => $event->getAttributes(),
@@ -150,11 +105,138 @@ final class Dispatcher
                     // что получил слушатель: параметры маршрута и атрибуты от middleware
                     'attributes' => $listener->getEvent()->getAttributes(),
                     'error' => $listener->getError() === null ? null : get_debug_type($listener->getError()) . ': ' . $listener->getError()->getMessage(),
-                ], static fn (mixed $value): bool => $value !== null && $value !== []), $reports),
+                ], static fn (mixed $value): bool => $value !== null && $value !== []), $report->getListeners()),
             ], static fn (array $value): bool => $value !== []));
         }
 
         return $report;
+    }
+
+    /**
+     * Слушатели по очереди, каждый со своими middleware. Самый частый путь рассылки, поэтому
+     * здесь нет лишних объектов: статусы и время копятся в массивах, а ListenerReport
+     * создаст DispatchReport, когда их запросят.
+     *
+     * @param EventInterface $original событие, переданное в dispatch()
+     * @param EventInterface $event событие после middleware роутера
+     * @param array{matches: list<RouteMatch>, listeners: list<class-string<ListenerInterface>>, middleware: list<list<class-string<MiddlewareInterface>|MiddlewareInterface>>, parameters: list<array<non-empty-string, non-empty-string>>, direct: bool} $plan
+     */
+    private function deliver(EventInterface $original, EventInterface $event, array $plan): DispatchReport
+    {
+        // PSR-14: событие или его payload может сказать «дальше не рассылать». Payload — общий объект
+        // для всех копий события, поэтому флаг, выставленный одним слушателем, видят следующие
+        /** @psalm-suppress MixedAssignment payload может быть чем угодно, нужна только проверка на StoppableEventInterface */
+        $payload = $event->getPayload();
+        $stoppable = $event instanceof StoppableEventInterface || $payload instanceof StoppableEventInterface;
+
+        // Самый частый случай: слушатели без middleware и параметров, событие нельзя остановить.
+        // Тогда на слушателя — только вызов и замер времени. Записываются только отклонения:
+        // слушатель без записи в $skipped и $errors отработал
+        if ($plan['direct'] && !$stoppable) {
+            $elapsed = [];
+            $skipped = [];
+            $errors = [];
+            $start = hrtime(true);
+
+            foreach ($plan['listeners'] as $index => $listener) {
+                try {
+                    $listener::handle($event);
+                } catch (Throwable $error) {
+                    $elapsed[$index] = hrtime(true) - $start;
+                    $errors[$index] = $error;
+
+                    if ($this->errorStrategy === ErrorStrategyEnum::Throw) {
+                        throw $error;
+                    }
+
+                    ($this->errorHandler ?? new PsrLoggerErrorHandler($this->logger))->handle($error, $event, $listener);
+
+                    if ($this->errorStrategy === ErrorStrategyEnum::Stop) {
+                        $skipped = array_fill($index + 1, \count($plan['listeners']) - $index - 1, true);
+
+                        break;
+                    }
+
+                    $start = hrtime(true);
+
+                    continue;
+                }
+
+                $elapsed[$index] = ($end = hrtime(true)) - $start;
+                $start = $end;
+            }
+
+            return new DispatchReport($original, $event, $plan['matches'], $elapsed, $skipped, $errors);
+        }
+
+        ['listeners' => $listeners, 'middleware' => $middleware, 'parameters' => $parameters] = $plan;
+
+        $elapsed = [];
+        $skipped = [];
+        $errors = [];
+        $events = [];
+        $stopped = false;
+        $start = hrtime(true);
+
+        foreach ($listeners as $index => $listener) {
+            $listenerEvent = $event;
+
+            if ($parameters[$index] !== []) {
+                foreach ($parameters[$index] as $name => $value) {
+                    $listenerEvent = $listenerEvent->withAttribute($name, $value);
+                }
+
+                $events[$index] = $listenerEvent;
+            }
+
+            if ($stoppable && !$stopped) {
+                $stopped = ($listenerEvent instanceof StoppableEventInterface && $listenerEvent->isPropagationStopped())
+                    || ($payload instanceof StoppableEventInterface && $payload->isPropagationStopped());
+            }
+
+            if ($stopped) {
+                $skipped[$index] = true;
+
+                continue;
+            }
+
+            try {
+                // Без middleware — прямой вызов: цепочка из замыканий не нужна
+                if ($middleware[$index] === []) {
+                    $listener::handle($listenerEvent);
+                } else {
+                    $reached = false;
+                    $this->chain($middleware[$index], static function (EventInterface $event) use ($listener, &$reached): void {
+                        $reached = true;
+                        $listener::handle($event);
+                    })($listenerEvent);
+
+                    if (!$reached) {
+                        $skipped[$index] = true;
+                    }
+                }
+            } catch (Throwable $error) {
+                $elapsed[$index] = hrtime(true) - $start;
+                $errors[$index] = $error;
+
+                if ($this->errorStrategy === ErrorStrategyEnum::Throw) {
+                    throw $error;
+                }
+
+                ($this->errorHandler ?? new PsrLoggerErrorHandler($this->logger))->handle($error, $listenerEvent, $listener);
+                $stopped = $this->errorStrategy === ErrorStrategyEnum::Stop;
+                $start = hrtime(true);
+
+                continue;
+            }
+
+            // Конец одного слушателя — начало следующего: один вызов hrtime() на слушателя
+            $end = hrtime(true);
+            $elapsed[$index] = $end - $start;
+            $start = $end;
+        }
+
+        return new DispatchReport($original, $event, $plan['matches'], $elapsed, $skipped, $errors, $events);
     }
 
     /**
@@ -183,27 +265,5 @@ final class Dispatcher
         }
 
         return $next;
-    }
-
-    /**
-     * Копия события с параметрами маршрута в атрибутах. Параметр перекрывает
-     * одноимённый атрибут, добавленный раньше.
-     */
-    private static function withParameters(EventInterface $event, RouteMatch $match): EventInterface
-    {
-        foreach ($match->getParameters() as $name => $value) {
-            $event = $event->withAttribute($name, $value);
-        }
-
-        return $event;
-    }
-
-    /**
-     * PSR-14: событие или его payload может сказать «дальше не рассылать».
-     * Payload — общий объект для всех копий события, поэтому флаг видят следующие слушатели.
-     */
-    private static function isStopped(mixed $value): bool
-    {
-        return $value instanceof StoppableEventInterface && $value->isPropagationStopped();
     }
 }

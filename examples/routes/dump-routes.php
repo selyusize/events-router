@@ -8,7 +8,7 @@ require __DIR__ . '/../../vendor/autoload.php';
 use Selyusize\EventsRouter\EventRouterFactory;
 
 $events = EventRouterFactory::create();
-(require __DIR__ . '/events.php')($events);
+$events->loadRoutes(require __DIR__ . '/events.php');
 
 $short = static fn (object|string $class): string => substr(strrchr('\\' . (is_string($class) ? $class : $class::class), '\\'), 1);
 

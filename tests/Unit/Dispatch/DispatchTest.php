@@ -7,6 +7,8 @@ namespace Selyusize\EventsRouter\Tests\Unit\Dispatch;
 use Closure;
 use DI\Container as PhpDiContainer;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use RuntimeException;
 use Selyusize\EventsRouter\Container\Container;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
@@ -222,6 +224,37 @@ final class DispatchTest extends TestCase
         $events->dispatch(new Event('order.paid'));
 
         self::assertSame(['→ from-container', 'RecordingListener order.paid', '← from-container'], Journal::$entries);
+    }
+
+    public function testWorksWithAnyPsr11Container(): void
+    {
+        // Не PHP-DI: знает только то, что в нём зарегистрировано, и ничего не создаёт сам
+        $container = new class([RecordingMiddleware::class => self::middleware('psr-11')]) implements ContainerInterface {
+            /**
+             * @param array<string, mixed> $entries
+             */
+            public function __construct(private readonly array $entries) {}
+
+            public function get(string $id): mixed
+            {
+                return $this->entries[$id] ?? throw new class('нет ' . $id) extends RuntimeException implements NotFoundExceptionInterface {};
+            }
+
+            public function has(string $id): bool
+            {
+                return isset($this->entries[$id]);
+            }
+        };
+
+        $events = EventRouterFactory::create($container);
+        $events->listen('order.paid', RecordingListener::class)->add(RecordingMiddleware::class);
+        $events->listen('order.paid', RecordingListener::class)->add(MarkingMiddleware::class);
+
+        $report = $events->dispatch(new Event('order.paid'));
+
+        self::assertSame($container, Container::getInstance());
+        self::assertSame(['→ psr-11', 'RecordingListener order.paid', '← psr-11'], Journal::$entries);
+        self::assertSame([ListenerStatusEnum::Handled, ListenerStatusEnum::Failed], self::statuses($report->getListeners()), 'незарегистрированный middleware — ошибка только своего слушателя');
     }
 
     public function testListenersGetTheSameContainerAsRouter(): void

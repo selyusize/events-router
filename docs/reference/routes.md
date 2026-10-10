@@ -20,12 +20,21 @@
 
 | Метод | Где есть | Что делает |
 | --- | --- | --- |
+| `loadRoutes(callable $routes)` | роутер | подключает файл маршрутов; с `route_cache_file` — через кэш |
 | `listen(string $pattern, string $listener)` | роутер, группа | вешает **одного** слушателя на шаблон, возвращает маршрут |
 | `group(string $prefix, callable $routes)` | роутер, группа | группа с общим префиксом и middleware, возвращает группу |
 | `add($middleware)` | роутер, группа, маршрут | добавляет middleware |
 | `setPrefix(string $prefix)` | роутер | общий префикс всех топиков, аналог `setBasePath()` |
 | `match(string $topic)` | роутер | какие маршруты получат событие, с параметрами |
 | `getRoutes()` | роутер | все маршруты с полными шаблонами и middleware |
+
+## `loadRoutes()`
+
+```php
+$events->loadRoutes(require __DIR__ . '/events-routes.php');
+```
+
+Вызывает функцию из файла маршрутов, передавая ей роутер. Без кэша это то же самое, что `(require ...)($events)`. С ключом `route_cache_file` при наличии файла кэша функция не вызывается: таблица берётся из кэша. Правила для режима с кэшем — в рецепте [Включить кэш маршрутов](../how-to/cache.md).
 
 ## `listen()`
 
@@ -105,3 +114,4 @@ Middleware роутера (`$events->add()`) выполняется **один �
 | шаблон вместе с префиксами групп и роутера | `listen()`, `setPrefix()` | [`InvalidTopicPattern`](../errors/invalid-topic-pattern.md) |
 | класс слушателя существует и реализует `ListenerInterface` | `listen()` | [`InvalidRoute`](../errors/invalid-route.md) |
 | класс middleware существует и реализует `MiddlewareInterface` | `add()` | [`InvalidRoute`](../errors/invalid-route.md) |
+| с кэшем: маршрут объявлен вне `loadRoutes()`, второй вызов `loadRoutes()`, middleware-объект | `listen()`, `group()`, `setPrefix()`, `loadRoutes()` | [`InvalidRoute`](../errors/invalid-route.md) |

@@ -36,6 +36,15 @@ final class Event implements EventInterface
     private readonly string $name;
 
     /**
+     * Имена, которые уже прошли проверку: одно и то же событие создаётся много раз,
+     * а регулярное выражение на каждое — лишняя работа. Имён с id бесконечно много,
+     * поэтому при переполнении список очищается.
+     *
+     * @var array<string, true>
+     */
+    private static array $validNames = [];
+
+    /**
      * @param string $name топик из сегментов через точку, например `shop.order.42.paid`
      * @param TPayload $payload данные события
      * @param array<non-empty-string, mixed> $attributes начальные атрибуты
@@ -47,6 +56,28 @@ final class Event implements EventInterface
         private readonly mixed $payload = null,
         private array $attributes = [],
     ) {
+        // Корректное имя проверяется одним выражением: событий много, и рассылка не должна тратить время на четыре проверки.
+        // Assert ниже нужен, только чтобы объяснить, что именно не так
+        if (isset(self::$validNames[$name])) {
+            /** @var non-empty-string $name проверено при первом создании события с этим именем */
+            $this->name = $name;
+
+            return;
+        }
+
+        if (preg_match('/^[^\s.*#{}]+(?:\.[^\s.*#{}]+)*$/uD', $name) === 1) {
+            if (\count(self::$validNames) >= 1024) {
+                self::$validNames = [];
+            }
+
+            self::$validNames[$name] = true;
+
+            /** @var non-empty-string $name выражение не пропускает пустую строку */
+            $this->name = $name;
+
+            return;
+        }
+
         try {
             Assert::stringNotEmpty($name, 'имя пустое');
             Assert::notRegex($name, '/\s/u', 'имя содержит пробельные символы');

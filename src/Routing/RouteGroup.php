@@ -121,14 +121,6 @@ final class RouteGroup implements RouteGroupInterface
     }
 
     /**
-     * Номер версии маршрутов: растёт при любом изменении в этой группе или любой другой.
-     */
-    public function getRevision(): int
-    {
-        return $this->revision->get();
-    }
-
-    /**
      * Соединить части топика через точку, пропуская пустые.
      */
     public static function join(string ...$parts): string

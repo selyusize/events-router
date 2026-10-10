@@ -29,7 +29,7 @@ final class RouteTableBuilder
         $routes = [];
         $this->collect($root, $prefix, [], $routes);
 
-        return new RouteTable($routes);
+        return RouteTable::fromRoutes($routes);
     }
 
     /**

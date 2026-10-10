@@ -19,6 +19,7 @@ EventRouterFactory::create(?ContainerInterface $container = null, array $config 
 | --- | --- | --- | --- |
 | `log_path` | непустая строка | `<sys_get_temp_dir()>/events-router/{date}.log` | шаблон пути к файлу лога, подстановки `{date}` (`Y-m-d`) и `{level}` (`error`, `info`, …) |
 | `log_dispatch` | `bool` | `false` | писать каждую рассылку: событие, атрибуты, слушателей со статусом и временем |
+| `route_cache_file` | непустая строка или `null` | `null` | PHP-файл кэша маршрутов для `loadRoutes()`, см. [Включить кэш маршрутов](../how-to/cache.md) |
 
 Неизвестный ключ или значение не того типа — исключение [`InvalidConfig`](../errors/invalid-config.md).
 
@@ -26,6 +27,7 @@ EventRouterFactory::create(?ContainerInterface $container = null, array $config 
 $events = EventRouterFactory::create($container, [
     'log_path' => '/var/www/local/logs/events-router/{level}/{date}.log',
     'log_dispatch' => true,
+    'route_cache_file' => '/var/www/local/var/cache/events-routes.php',
 ]);
 ```
 

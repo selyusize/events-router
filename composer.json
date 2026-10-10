@@ -37,6 +37,7 @@
         "overtrue/phplint": "^9.0",
         "phpunit/phpunit": "^10.5",
         "saggre/phpdocumentor-markdown": "^1.0",
+        "symfony/event-dispatcher": "^6.4 || ^7.4",
         "vimeo/psalm": "^6.19"
     },
     "autoload": {

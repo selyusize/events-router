@@ -110,6 +110,28 @@ final class RouteMatcherTest extends TestCase
         self::assertSame($events->getRoutes()[0], $events->match('order.created')[0]->getRoute());
     }
 
+    public function testExactAndPatternRoutesKeepDeclarationOrder(): void
+    {
+        $events = EventRouterFactory::create();
+        $events->listen('#', Listener\First::class);
+        $events->listen('order.paid', Listener\Second::class);
+        $events->listen('order.{status}', Listener\Third::class);
+        $events->listen('*.paid', Listener\Fourth::class);
+        $events->listen('order.paid', Listener\Any::class);
+        $events->listen('order.created', Listener\NotMatching::class);
+        $events->listen('order.#', Listener\MarkOrderPaid::class);
+
+        $listeners = static fn (string $topic): array => array_map(
+            static fn (RouteMatch $match): string => $match->getRoute()->getListener(),
+            $events->match($topic),
+        );
+
+        $expected = [Listener\First::class, Listener\Second::class, Listener\Third::class, Listener\Fourth::class, Listener\Any::class, Listener\MarkOrderPaid::class];
+        self::assertSame($expected, $listeners('order.paid'));
+        self::assertSame($expected, $listeners('order.paid'), 'повторный поиск берёт запомненный результат');
+        self::assertSame([Listener\First::class], $listeners('shop'));
+    }
+
     /**
      * @param list<RouteMatch> $matches
      *

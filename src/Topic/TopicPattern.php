@@ -141,6 +141,31 @@ final class TopicPattern
     }
 
     /**
+     * Шаблон из кэша маршрутов: уже разобран и проверен, поэтому без повторного разбора.
+     *
+     * @internal используется кэшем маршрутов
+     *
+     * @param non-empty-string $pattern
+     * @param non-empty-string $regex результат getRegex() того же шаблона
+     */
+    public static function fromCache(string $pattern, string $regex): self
+    {
+        return new self($pattern, $regex);
+    }
+
+    /**
+     * Скомпилированное регулярное выражение шаблона.
+     *
+     * @internal используется кэшем маршрутов
+     *
+     * @return non-empty-string
+     */
+    public function getRegex(): string
+    {
+        return $this->regex;
+    }
+
+    /**
      * Сопоставить топик с шаблоном.
      *
      * @return array<non-empty-string, non-empty-string>|null параметры (пустой массив, если их нет)
