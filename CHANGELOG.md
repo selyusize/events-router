@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-10-10
+
+### Добавлено
+
+- **Сообщения на английском.** Ключ конфига `locale`: `EventRouterFactory::create($container, ['locale' => 'en'])` переключает на английский тексты исключений, записи лога, предупреждения PHP и комментарий в файле кэша маршрутов. Ссылки в исключениях ведут на английскую версию сайта. По умолчанию — `ru`, как раньше. Язык общий на процесс (`Locale\Messages`); `create()` без ключа его не меняет. Неверное значение — `InvalidConfig`.
+- **Документация на английском:** https://selyusize.github.io/events-router/en/, переключатель языка в шапке сайта. Английские примеры в `examples/en/` выполняются в CI, как и русские. Справочник API и список изменений — только на русском.
+- Политика безопасности `SECURITY.md`: как сообщить об уязвимости.
+- Dependabot: еженедельные обновления зависимостей и действий CI.
+
+### Изменено
+
+- CI: у workflow явные минимальные права `permissions`, действия обновлены.
+
 ## [0.5.1] — 2026-10-10
 
 ### Исправлено
@@ -89,7 +102,8 @@
 - **PSR-14.** `Psr14EventDispatcher`: роутер под `Psr\EventDispatcher\EventDispatcherInterface`, объекты без `EventInterface` превращаются в события через явный маппер. Ошибка — `UnmappableEvent`.
 - **Документация** на GitHub Pages: руководство с исполняемыми примерами, справочник API из PHPDoc, страница на каждое исключение.
 
-[Unreleased]: https://github.com/selyusize/events-router/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/selyusize/events-router/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/selyusize/events-router/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/selyusize/events-router/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/selyusize/events-router/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/selyusize/events-router/compare/v0.3.0...v0.4.0
