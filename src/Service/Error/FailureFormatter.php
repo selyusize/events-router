@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Service\Error;
 
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
+use Selyusize\EventsRouter\Locale\Messages;
 use Throwable;
 
 /**
@@ -20,7 +21,7 @@ final class FailureFormatter
     public function format(Throwable $error, EventInterface $event, string $listener): string
     {
         return \sprintf(
-            'events-router: слушатель %s упал на событии %s: %s: %s в %s:%d',
+            Messages::translate('events-router: слушатель %s упал на событии %s: %s: %s в %s:%d'),
             self::readableClass($listener),
             $event->getName(),
             get_debug_type($error),

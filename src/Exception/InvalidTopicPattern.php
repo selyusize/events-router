@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter\Exception;
 use InvalidArgumentException;
 use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Documentation;
+use Selyusize\EventsRouter\Locale\Messages;
 
 /**
  * Шаблон топика в маршруте записан с ошибкой.
@@ -19,7 +20,7 @@ final class InvalidTopicPattern extends InvalidArgumentException implements Exce
     public static function because(string $pattern, string $reason): self
     {
         return new self(\sprintf(
-            'Некорректный шаблон топика "%s": %s. См. %s',
+            Messages::translate('Некорректный шаблон топика "%s": %s. См. %s'),
             $pattern,
             $reason,
             Documentation::errorUrl('invalid-topic-pattern'),

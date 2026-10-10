@@ -11,6 +11,7 @@ use CMain;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouter;
 use Selyusize\EventsRouter\Exception\InvalidRoute;
+use Selyusize\EventsRouter\Locale\Messages;
 
 /**
  * Мост от `EventManager` Bitrix к роутеру: события Bitrix приходят в слушателей
@@ -177,7 +178,7 @@ final class BitrixEventBridge
 
             if (\count($segments) !== 2 || strpbrk($topic, '*#{') !== false) {
                 throw InvalidRoute::because(\sprintf(
-                    'маршрут "%s": EventManager Bitrix подписывается только на конкретное событие, нужен топик %s.<модуль>.<Событие> без *, # и параметров',
+                    Messages::translate('маршрут "%s": EventManager Bitrix подписывается только на конкретное событие, нужен топик %s.<модуль>.<Событие> без *, # и параметров'),
                     $topic,
                     $prefix,
                 ));

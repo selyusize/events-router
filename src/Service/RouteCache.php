@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter\Service;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Exception\InvalidRoute;
+use Selyusize\EventsRouter\Locale\Messages;
 use Selyusize\EventsRouter\Routing\RouteTable;
 use Throwable;
 
@@ -80,13 +81,13 @@ final class RouteCache
         foreach ($all as $item) {
             if (!\is_string($item)) {
                 throw InvalidRoute::because(\sprintf(
-                    'кэш маршрутов хранит middleware только именем класса, а %s добавлен объектом: передайте в add() имя класса',
+                    Messages::translate('кэш маршрутов хранит middleware только именем класса, а %s добавлен объектом: передайте в add() имя класса'),
                     $item::class,
                 ));
             }
         }
 
-        $code = "<?php\n\n// Кэш маршрутов events-router. Удалите файл после изменения маршрутов.\n\nreturn "
+        $code = "<?php\n\n// " . Messages::translate('Кэш маршрутов events-router. Удалите файл после изменения маршрутов.') . "\n\nreturn "
             . var_export(['format' => self::FORMAT, 'table' => $data, 'middleware' => $middleware], true)
             . ";\n";
 
@@ -96,7 +97,7 @@ final class RouteCache
         if ((!is_dir($directory) && !@mkdir($directory, 0o775, true) && !is_dir($directory))
             || @file_put_contents($temporary, $code) === false
             || !@rename($temporary, $this->file)) {
-            trigger_error(\sprintf('events-router: не удалось записать кэш маршрутов в %s', $this->file), E_USER_WARNING);
+            trigger_error(\sprintf(Messages::translate('events-router: не удалось записать кэш маршрутов в %s'), $this->file), E_USER_WARNING);
 
             return;
         }

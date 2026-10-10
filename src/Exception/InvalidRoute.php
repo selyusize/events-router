@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter\Exception;
 use InvalidArgumentException;
 use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Documentation;
+use Selyusize\EventsRouter\Locale\Messages;
 
 /**
  * Маршрут объявлен с ошибкой: класс слушателя или middleware не найден
@@ -20,7 +21,7 @@ final class InvalidRoute extends InvalidArgumentException implements ExceptionIn
     public static function because(string $reason): self
     {
         return new self(\sprintf(
-            'Ошибка в маршрутах: %s. См. %s',
+            Messages::translate('Ошибка в маршрутах: %s. См. %s'),
             $reason,
             Documentation::errorUrl('invalid-route'),
         ));

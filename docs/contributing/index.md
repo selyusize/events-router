@@ -25,7 +25,7 @@ make cs-fix    # исправить стиль кода
 - исключения реализуют `Contract\Exception\ExceptionInterface`;
 - интерфейсы лежат только в `src/Contract/`;
 - enum называются `...Enum`;
-- у каждого исключения есть страница в `docs/errors/`;
+- у каждого исключения есть страница в `docs/errors/` и в `docs-en/errors/`;
 - путь к файлу соответствует неймспейсу (PSR-4).
 
 ## Компоненты и их границы
@@ -46,10 +46,15 @@ Contract ← Topic ← Routing ← Dispatch ← Service ← EventRouter + EventR
 | `Source/` | реализации источников событий для воркеров (`InMemoryEventSource`); зависят только от `Contract/` |
 | `EventRouter`, `EventRouterFactory` | фасад и единственное место, где части роутера создаются и связываются |
 | `Psr14/` | адаптер PSR-14 поверх `EventRouter` — внешний слой, как и сам роутер |
-| `Exception/` | исключения; зависят только от `Contract/` (`ExceptionInterface`) и `Documentation` |
-| `Documentation` | лист: ни от кого не зависит |
+| `Exception/` | исключения; зависят только от `Contract/` (`ExceptionInterface`), `Documentation` и `Locale/` |
+| `Locale/` | язык сообщений: `Messages::translate()` и словарь переводов; ни от кого не зависит, им пользуются все |
+| `Documentation` | ссылки на сайт; зависит только от `Locale/` — ссылка ведёт на версию сайта на языке сообщений |
 
 Границы проверяет `tests/Unit/BoundariesTest.php`: импорт «против течения» валит тесты.
+
+## Сообщения
+
+Новое сообщение для исключения, лога или предупреждения пишется по-русски и оборачивается в `Messages::translate('...')`, а английская пара добавляется в `Messages::ENGLISH`. Без пары не пройдёт `tests/Unit/Locale/MessagesTest.php`, он же сверяет плейсхолдеры `%s`, `%d`.
 
 Стиль кода — `.php-cs-fixer.dist.php`, статический анализ — Psalm, уровень 1.
 

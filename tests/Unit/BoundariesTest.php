@@ -16,6 +16,7 @@ use SplFileInfo;
  * Contract ← Topic ← Routing ← Dispatch ← Service ← EventRouter + EventRouterFactory
  * Contract ← Source (реализации источников событий)
  * Container — фасад над PSR-11, ни от кого внутри не зависит
+ * Locale — язык сообщений, ни от кого внутри не зависит, им пользуются все
  * Bitrix — адаптер поверх EventRouter, как Psr14; ядро о нём не знает
  * Psr14 — адаптер поверх EventRouter, внешний слой, как и сам роутер
  * ```
@@ -36,13 +37,14 @@ final class BoundariesTest extends TestCase
      */
     private const ALLOWED = [
         'Contract' => [],
-        'Documentation' => [],
-        'Exception' => ['Contract', 'Documentation'],
-        'Event' => ['Contract', 'Exception'],
-        'Topic' => ['Exception'],
-        'Routing' => ['Contract', 'Topic', 'Exception'],
+        'Locale' => [],
+        'Documentation' => ['Locale'],
+        'Exception' => ['Contract', 'Documentation', 'Locale'],
+        'Event' => ['Contract', 'Exception', 'Locale'],
+        'Topic' => ['Exception', 'Locale'],
+        'Routing' => ['Contract', 'Topic', 'Exception', 'Locale'],
         'Dispatch' => ['Contract', 'Routing'],
-        'Service' => ['Contract', 'Topic', 'Routing', 'Dispatch', 'Exception'],
+        'Service' => ['Contract', 'Topic', 'Routing', 'Dispatch', 'Exception', 'Locale'],
         'Source' => ['Contract'],
         'Container' => [],
     ];

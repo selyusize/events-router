@@ -16,6 +16,7 @@ use Selyusize\EventsRouter\Dispatch\DispatchReport;
 use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Exception\InvalidRoute;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
+use Selyusize\EventsRouter\Locale\Messages;
 use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Selyusize\EventsRouter\Routing\Revision;
 use Selyusize\EventsRouter\Routing\Route;
@@ -119,7 +120,7 @@ final class EventRouter implements RouteCollectorInterface
     public function loadRoutes(callable $routes): self
     {
         if ($this->cache !== null && $this->loaded) {
-            throw InvalidRoute::because('с кэшем маршрутов loadRoutes() вызывается один раз: подключите все маршруты из одного файла');
+            throw InvalidRoute::because(Messages::translate('с кэшем маршрутов loadRoutes() вызывается один раз: подключите все маршруты из одного файла'));
         }
 
         $this->loaded = true;
@@ -329,7 +330,7 @@ final class EventRouter implements RouteCollectorInterface
     private function assertDeclaring(): void
     {
         if ($this->cache !== null && !$this->loading) {
-            throw InvalidRoute::because('с кэшем маршрутов (route_cache_file) маршруты объявляются только внутри loadRoutes()');
+            throw InvalidRoute::because(Messages::translate('с кэшем маршрутов (route_cache_file) маршруты объявляются только внутри loadRoutes()'));
         }
     }
 }

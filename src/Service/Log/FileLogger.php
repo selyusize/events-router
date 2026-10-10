@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter\Service\Log;
 use DateTimeImmutable;
 use Override;
 use Psr\Log\AbstractLogger;
+use Selyusize\EventsRouter\Locale\Messages;
 use Stringable;
 use Throwable;
 
@@ -65,13 +66,13 @@ final class FileLogger extends AbstractLogger
 
         // Папку мог создать параллельный процесс между is_dir() и mkdir() — поэтому проверка после
         if (!is_dir($directory) && !@mkdir($directory, 0o775, true) && !is_dir($directory)) {
-            trigger_error(\sprintf('events-router: не удалось создать папку для лога %s', $directory), E_USER_WARNING);
+            trigger_error(\sprintf(Messages::translate('events-router: не удалось создать папку для лога %s'), $directory), E_USER_WARNING);
 
             return;
         }
 
         if (@file_put_contents($file, $line . PHP_EOL, FILE_APPEND | LOCK_EX) === false) {
-            trigger_error(\sprintf('events-router: не удалось записать лог в %s', $file), E_USER_WARNING);
+            trigger_error(\sprintf(Messages::translate('events-router: не удалось записать лог в %s'), $file), E_USER_WARNING);
         }
     }
 }

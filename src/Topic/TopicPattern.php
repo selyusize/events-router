@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Topic;
 
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
+use Selyusize\EventsRouter\Locale\Messages;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -64,17 +65,17 @@ final class TopicPattern
         // Assert проверяет аргументы, разбор скобок и regex ограничений — сам шаблон.
         // Ошибка Assert становится InvalidTopicPattern со ссылкой на документацию.
         try {
-            Assert::stringNotEmpty($pattern, 'шаблон пустой');
+            Assert::stringNotEmpty($pattern, Messages::translate('шаблон пустой'));
 
             if (preg_match('/^(?:[^{}]++|' . self::BRACES . ')*+$/', $pattern) !== 1) {
                 throw InvalidTopicPattern::because($pattern, substr_count($pattern, '{') > substr_count($pattern, '}')
-                    ? 'не закрыта фигурная скобка'
-                    : 'лишняя закрывающая фигурная скобка');
+                    ? Messages::translate('не закрыта фигурная скобка')
+                    : Messages::translate('лишняя закрывающая фигурная скобка'));
             }
 
             // Точки внутри скобок — часть regex параметра, а не разделитель сегментов
             foreach (preg_split('/' . self::BRACES . '(*SKIP)(*FAIL)|\./', $pattern) ?: [] as $segment) {
-                Assert::stringNotEmpty($segment, 'пустой сегмент: точка в начале, в конце или две точки подряд');
+                Assert::stringNotEmpty($segment, Messages::translate('пустой сегмент: точка в начале, в конце или две точки подряд'));
 
                 if ($segment === '#') {
                     $regex .= '(?:\.[^.]+)*';
@@ -89,9 +90,9 @@ final class TopicPattern
                 }
 
                 if (preg_match('/^' . self::BRACES . '$/', $segment) !== 1) {
-                    Assert::notContains($segment, '{', 'параметр в сегменте %s должен занимать весь сегмент, например order.{order_id}');
-                    Assert::notRegex($segment, '/[*#]/', '* и # в сегменте %s должны занимать весь сегмент, например order.*');
-                    Assert::notRegex($segment, '/\s/u', 'сегмент %s содержит пробельные символы');
+                    Assert::notContains($segment, '{', Messages::translate('параметр в сегменте %s должен занимать весь сегмент, например order.{order_id}'));
+                    Assert::notRegex($segment, '/[*#]/', Messages::translate('* и # в сегменте %s должны занимать весь сегмент, например order.*'));
+                    Assert::notRegex($segment, '/\s/u', Messages::translate('сегмент %s содержит пробельные символы'));
 
                     $regex .= '\.' . preg_quote($segment);
 
@@ -103,17 +104,17 @@ final class TopicPattern
                 $name = $colon === false ? $definition : substr($definition, 0, $colon);
                 $constraint = $colon === false ? null : substr($definition, $colon + 1);
 
-                Assert::regex($name, '/^[a-z][a-z0-9_]*$/', 'имя параметра %s должно быть в snake_case: строчные латинские буквы, цифры и _, начинается с буквы, например {order_id}');
+                Assert::regex($name, '/^[a-z][a-z0-9_]*$/', Messages::translate('имя параметра %s должно быть в snake_case: строчные латинские буквы, цифры и _, начинается с буквы, например {order_id}'));
                 // В $name уже нет % — его можно подставить в сообщение заранее
-                Assert::keyNotExists($parameters, $name, \sprintf('параметр {%s} встречается дважды', $name));
-                Assert::notSame($constraint, '', \sprintf('пустое ограничение у параметра {%s:}: уберите двоеточие или добавьте regex', $name));
+                Assert::keyNotExists($parameters, $name, \sprintf(Messages::translate('параметр {%s} встречается дважды'), $name));
+                Assert::notSame($constraint, '', \sprintf(Messages::translate('пустое ограничение у параметра {%s:}: уберите двоеточие или добавьте regex'), $name));
 
                 // Ограничение проверяется на весь сегмент: от точки до точки или конца топика
                 $check = $constraint === null ? '' : '(?=(?:' . $constraint . ')(?:\.|$))';
 
                 if ($check !== '' && @preg_match('{' . $check . '}u', '') === false) {
                     throw InvalidTopicPattern::because($pattern, \sprintf(
-                        'ошибка в regex параметра {%s}: %s',
+                        Messages::translate('ошибка в regex параметра {%s}: %s'),
                         $name,
                         (string)preg_replace('/^preg_match\(\): /', '', error_get_last()['message'] ?? preg_last_error_msg()),
                     ));

@@ -8,6 +8,7 @@ use Override;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Contract\Routing\RouteGroupInterface;
+use Selyusize\EventsRouter\Locale\Messages;
 use Selyusize\EventsRouter\Topic\TopicPattern;
 
 /**
@@ -57,8 +58,8 @@ final class RouteGroup implements RouteGroupInterface
         // Проверяем шаблон и класс сразу, чтобы ошибка указывала на строку с listen().
         // Префикс роутера добавится при сборке таблицы.
         TopicPattern::fromString(self::join($this->path, $pattern));
-        RouteAssert::classExists($listener, 'класс слушателя %s не найден');
-        RouteAssert::implementsInterface($listener, ListenerInterface::class, 'слушатель %s должен реализовать %2$s');
+        RouteAssert::classExists($listener, Messages::translate('класс слушателя %s не найден'));
+        RouteAssert::implementsInterface($listener, ListenerInterface::class, Messages::translate('слушатель %s должен реализовать %2$s'));
 
         /** @var class-string<ListenerInterface> $listener Psalm после Assert считает, что это может быть и объект */
         $route = new Route($pattern, $listener, $this->revision);

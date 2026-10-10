@@ -7,6 +7,8 @@ namespace Selyusize\EventsRouter;
 use Psr\Container\ContainerInterface;
 use Selyusize\EventsRouter\Container\Container;
 use Selyusize\EventsRouter\Exception\InvalidConfig;
+use Selyusize\EventsRouter\Locale\LocaleEnum;
+use Selyusize\EventsRouter\Locale\Messages;
 use Selyusize\EventsRouter\Routing\Revision;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Service\Dispatcher;
@@ -25,6 +27,7 @@ use Webmozart\Assert\InvalidArgumentException;
  *     'log_path' => '/var/www/local/logs/events-router/{level}/{date}.log',
  *     'log_dispatch' => true,
  *     'route_cache_file' => '/var/www/local/var/cache/events-routes.php',   // в проде
+ *     'locale' => 'en',
  * ]);
  * $events->loadRoutes(require __DIR__ . '/events.php');
  * ```
@@ -34,7 +37,7 @@ final class EventRouterFactory
     /**
      * Ключи конфига, в snake_case, как `config['events_router']` в стартовой архитектуре.
      */
-    private const CONFIG_KEYS = ['log_path', 'log_dispatch', 'route_cache_file'];
+    private const CONFIG_KEYS = ['log_path', 'log_dispatch', 'route_cache_file', 'locale'];
 
     /**
      * @param ContainerInterface|null $container контейнер проекта: из него создаются middleware,
@@ -47,6 +50,9 @@ final class EventRouterFactory
      *                                     слушателей со статусом и временем; по умолчанию `false`
      *                                     - `route_cache_file` — PHP-файл кэша маршрутов для loadRoutes();
      *                                     по умолчанию кэша нет
+     *                                     - `locale` — язык исключений и лога: `ru` или `en`, по умолчанию `ru`.
+     *                                     Общий на процесс: действует и на события, созданные после этого вызова;
+     *                                     без ключа язык не меняется
      *
      * @throws InvalidConfig если в конфиге неизвестный ключ или значение не того типа
      */
@@ -57,13 +63,22 @@ final class EventRouterFactory
         $routeCacheFile = $config['route_cache_file'] ?? null;
 
         try {
-            foreach (array_keys($config) as $key) {
-                Assert::oneOf($key, self::CONFIG_KEYS, 'неизвестный ключ %s, допустимые: %2$s');
+            // Язык — первым, чтобы остальные ошибки конфига были уже на нём.
+            // Без ключа язык не меняется: его мог задать другой вызов create()
+            if (\array_key_exists('locale', $config)) {
+                Assert::oneOf($config['locale'], array_column(LocaleEnum::cases(), 'value'), Messages::translate('locale должен быть одним из %2$s, передано %s'));
+                /** @var value-of<LocaleEnum> $locale проверено строкой выше */
+                $locale = $config['locale'];
+                Messages::setLocale(LocaleEnum::from($locale));
             }
 
-            Assert::stringNotEmpty($logPath, 'log_path должен быть непустой строкой, передано %s');
-            Assert::boolean($logDispatch, 'log_dispatch должен быть true или false, передано %s');
-            Assert::nullOrStringNotEmpty($routeCacheFile, 'route_cache_file должен быть непустой строкой, передано %s');
+            foreach (array_keys($config) as $key) {
+                Assert::oneOf($key, self::CONFIG_KEYS, Messages::translate('неизвестный ключ %s, допустимые: %2$s'));
+            }
+
+            Assert::stringNotEmpty($logPath, Messages::translate('log_path должен быть непустой строкой, передано %s'));
+            Assert::boolean($logDispatch, Messages::translate('log_dispatch должен быть true или false, передано %s'));
+            Assert::nullOrStringNotEmpty($routeCacheFile, Messages::translate('route_cache_file должен быть непустой строкой, передано %s'));
         } catch (InvalidArgumentException $error) {
             throw InvalidConfig::because($error->getMessage());
         }

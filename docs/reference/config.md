@@ -20,6 +20,7 @@ EventRouterFactory::create(?ContainerInterface $container = null, array $config 
 | `log_path` | непустая строка | `<sys_get_temp_dir()>/events-router/{date}.log` | шаблон пути к файлу лога, подстановки `{date}` (`Y-m-d`) и `{level}` (`error`, `info`, …) |
 | `log_dispatch` | `bool` | `false` | писать каждую рассылку: событие, атрибуты, слушателей со статусом и временем |
 | `route_cache_file` | непустая строка или `null` | `null` | PHP-файл кэша маршрутов для `loadRoutes()`, см. [Включить кэш маршрутов](../how-to/cache.md) |
+| `locale` | `'ru'` или `'en'` | `'ru'` | язык исключений, лога и предупреждений, см. [ниже](#locale) |
 
 Неизвестный ключ или значение не того типа — исключение [`InvalidConfig`](../errors/invalid-config.md).
 
@@ -30,6 +31,16 @@ $events = EventRouterFactory::create($container, [
     'route_cache_file' => '/var/www/local/var/cache/events-routes.php',
 ]);
 ```
+
+## Язык сообщений {#locale}
+
+Сообщения библиотеки по умолчанию на русском: тексты исключений, записи лога, предупреждения PHP. `'locale' => 'en'` переключает их на английский, а ссылки в исключениях ведут на [английскую версию](https://selyusize.github.io/events-router/en/) этого сайта:
+
+```text
+Invalid topic pattern "order-{order_id}.paid": parameter in segment "order-{order_id}" must take the whole segment, e.g. order.{order_id}. See https://selyusize.github.io/events-router/en/errors/invalid-topic-pattern/
+```
+
+Язык **один на процесс**. Имя события проверяется в `new Event()`, где роутера нет, поэтому язык не может принадлежать экземпляру роутера. Он действует с момента вызова `create()`, в том числе на события, созданные после. Создавайте роутер при старте приложения, до первых событий. Вызов `create()` без ключа `locale` язык не меняет.
 
 ## Сеттеры роутера
 

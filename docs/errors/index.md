@@ -25,4 +25,6 @@ try {
 | [`InvalidConfig`](invalid-config.md) | в `EventRouterFactory::create()` передан неизвестный ключ конфига или значение не того типа |
 | [`UnmappableEvent`](unmappable-event.md) | в PSR-14 адаптер передан объект без `EventInterface`, а маппера нет |
 
+С `'locale' => 'en'` сообщения на английском и ведут на английские версии этих страниц, см. [Конфигурацию](../reference/config.md#locale).
+
 Страницы появляются вместе с исключениями: CI не пропустит исключение без страницы.

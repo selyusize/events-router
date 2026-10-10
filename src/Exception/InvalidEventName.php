@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter\Exception;
 use InvalidArgumentException;
 use Selyusize\EventsRouter\Contract\Exception\ExceptionInterface;
 use Selyusize\EventsRouter\Documentation;
+use Selyusize\EventsRouter\Locale\Messages;
 
 /**
  * Имя события не является корректным топиком.
@@ -19,7 +20,7 @@ final class InvalidEventName extends InvalidArgumentException implements Excepti
     public static function because(string $name, string $reason): self
     {
         return new self(\sprintf(
-            'Некорректное имя события "%s": %s. См. %s',
+            Messages::translate('Некорректное имя события "%s": %s. См. %s'),
             $name,
             $reason,
             Documentation::errorUrl('invalid-event-name'),

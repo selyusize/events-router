@@ -13,6 +13,7 @@
 | только известные ключи | `'logPath' => ...`, `'log_dir' => ...` | `'log_path' => ...` |
 | `log_path` — непустая строка | `'log_path' => ''` | `'log_path' => '/var/log/events-router/{date}.log'` |
 | `log_dispatch` — `true` или `false` | `'log_dispatch' => 'yes'` | `'log_dispatch' => true` |
+| `locale` — `'ru'` или `'en'` | `'locale' => 'de'`, `'locale' => 'EN'` | `'locale' => 'en'` |
 
 Неизвестный ключ — ошибка, а не молчаливый пропуск: так опечатка в имени настройки не остаётся незамеченной.
 

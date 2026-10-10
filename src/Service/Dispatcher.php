@@ -15,6 +15,7 @@ use Selyusize\EventsRouter\Contract\Error\ErrorHandlerInterface;
 use Selyusize\EventsRouter\Dispatch\DispatchReport;
 use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Dispatch\ListenerReport;
+use Selyusize\EventsRouter\Locale\Messages;
 use Selyusize\EventsRouter\Routing\RouteMatch;
 use Selyusize\EventsRouter\Routing\RouteTable;
 use Selyusize\EventsRouter\Service\Error\FailureFormatter;
@@ -92,7 +93,7 @@ final class Dispatcher
 
         if ($this->logDispatch) {
             $this->logger->info(\sprintf(
-                'events-router: %s, слушателей: %d, %.1f мс',
+                Messages::translate('events-router: %s, слушателей: %d, %.1f мс'),
                 $event->getName(),
                 \count($plan['matches']),
                 (float)(hrtime(true) - $dispatchStart) / 1e6,

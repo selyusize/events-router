@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter\Routing;
 use Override;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Exception\InvalidRoute;
+use Selyusize\EventsRouter\Locale\Messages;
 use Webmozart\Assert\Assert;
 
 /**
@@ -25,8 +26,8 @@ final class RouteAssert extends Assert
     public static function middleware(MiddlewareInterface|string $middleware): void
     {
         if (\is_string($middleware)) {
-            self::classExists($middleware, 'класс middleware %s не найден');
-            self::implementsInterface($middleware, MiddlewareInterface::class, 'middleware %s должен реализовать %2$s');
+            self::classExists($middleware, Messages::translate('класс middleware %s не найден'));
+            self::implementsInterface($middleware, MiddlewareInterface::class, Messages::translate('middleware %s должен реализовать %2$s'));
         }
     }
 

@@ -7,6 +7,7 @@ namespace Selyusize\EventsRouter;
 use Override;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Exception\InvalidEventName;
+use Selyusize\EventsRouter\Locale\Messages;
 use Webmozart\Assert\Assert;
 use Webmozart\Assert\InvalidArgumentException;
 
@@ -79,10 +80,10 @@ final class Event implements EventInterface
         }
 
         try {
-            Assert::stringNotEmpty($name, 'имя пустое');
-            Assert::notRegex($name, '/\s/u', 'имя содержит пробельные символы');
-            Assert::notRegex($name, '/[*#{}]/', 'символы *, #, {, } допустимы только в шаблонах маршрутов, а не в имени события');
-            Assert::notRegex($name, '/^\.|\.\.|\.$/', 'пустой сегмент: точка в начале, в конце или две точки подряд');
+            Assert::stringNotEmpty($name, Messages::translate('имя пустое'));
+            Assert::notRegex($name, '/\s/u', Messages::translate('имя содержит пробельные символы'));
+            Assert::notRegex($name, '/[*#{}]/', Messages::translate('символы *, #, {, } допустимы только в шаблонах маршрутов, а не в имени события'));
+            Assert::notRegex($name, '/^\.|\.\.|\.$/', Messages::translate('пустой сегмент: точка в начале, в конце или две точки подряд'));
         } catch (InvalidArgumentException $error) {
             throw InvalidEventName::because($name, $error->getMessage());
         }

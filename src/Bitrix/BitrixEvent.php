@@ -8,6 +8,7 @@ use Bitrix\Main\Event as D7Event;
 use LogicException;
 use Override;
 use Psr\EventDispatcher\StoppableEventInterface;
+use Selyusize\EventsRouter\Locale\Messages;
 
 /**
  * Событие Bitrix — payload события роутера, которое пришло через BitrixEventBridge.
@@ -104,10 +105,10 @@ final class BitrixEvent implements StoppableEventInterface
 
         if (!\is_array($fields)) {
             throw new LogicException(\sprintf(
-                'У события %s:%s нет массива полей в первом аргументе. %s',
+                Messages::translate('У события %s:%s нет массива полей в первом аргументе. %s'),
                 $this->moduleId,
                 $this->eventType,
-                $this->getD7Event() === null ? 'Используйте getArguments().' : 'Это событие D7: используйте getD7Event().',
+                $this->getD7Event() === null ? Messages::translate('Используйте getArguments().') : Messages::translate('Это событие D7: используйте getD7Event().'),
             ));
         }
 
