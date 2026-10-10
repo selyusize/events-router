@@ -137,6 +137,27 @@ $results['воркер: рассылка, точные имена'] = [
     }),
 ];
 
+// ---------------------------------------------------------------- подготовка
+
+// Только собрать диспетчер со всеми слушателями, без рассылок
+$results['подготовка: ' . EVENTS * LISTENERS . ' слушателей, без рассылок'] = [
+    'symfony/event-dispatcher' => measure(static function (): void {
+        for ($i = 0; $i < SETUPS; ++$i) {
+            symfony();
+        }
+    }),
+    'events-router' => measure(static function (): void {
+        for ($i = 0; $i < SETUPS; ++$i) {
+            router();
+        }
+    }),
+    'events-router, кэш маршрутов' => measure(static function () use ($cacheFile): void {
+        for ($i = 0; $i < SETUPS; ++$i) {
+            router(['route_cache_file' => $cacheFile]);
+        }
+    }),
+];
+
 // ---------------------------------------------------------------- запрос PHP-FPM
 
 // Каждый запрос PHP-FPM собирает диспетчер заново: подготовка + несколько рассылок
@@ -185,7 +206,7 @@ foreach ($results as $scenario => $libraries) {
 
     foreach ($libraries as $library => $seconds) {
         $count = $ops[$scenario] ?? SETUPS;
-        printf("  %-32s %8.1f мс  %10s оп/с  %5.2fx\n", $library, $seconds * 1000, number_format($count / $seconds, 0, '.', ' '), $base / $seconds);
+        printf("  %-32s %9.2f мкс на операцию  %5.2fx\n", $library, $seconds / $count * 1e6, $base / $seconds);
     }
 
     echo PHP_EOL;
