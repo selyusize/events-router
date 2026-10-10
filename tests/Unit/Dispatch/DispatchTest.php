@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Tests\Unit\Dispatch;
 
 use Closure;
+use DI\Container as PhpDiContainer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Selyusize\EventsRouter\Container\Container;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
@@ -15,8 +17,8 @@ use Selyusize\EventsRouter\Dispatch\ListenerStatusEnum;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Routing\RouteGroup;
-use Selyusize\EventsRouter\Tests\Fixture\ArrayContainer;
 use Selyusize\EventsRouter\Tests\Fixture\Journal;
+use Selyusize\EventsRouter\Tests\Fixture\MarkingMiddleware;
 use Selyusize\EventsRouter\Tests\Fixture\RecordingListener;
 use Selyusize\EventsRouter\Tests\Fixture\RecordingMiddleware;
 use Selyusize\EventsRouter\Tests\Fixture\Scripted\ScriptedListener;
@@ -30,6 +32,12 @@ final class DispatchTest extends TestCase
     {
         Journal::reset();
         ScriptedListener::reset();
+    }
+
+    protected function tearDown(): void
+    {
+        // Фасад контейнера глобальный: контейнер одного теста не должен попасть в другой
+        Container::set(new PhpDiContainer());
     }
 
     public function testCallsListenersInDeclarationOrderWithOwnParameters(): void
@@ -196,9 +204,19 @@ final class DispatchTest extends TestCase
         self::assertSame(['RecordingMiddleware', 'RecordingListener order.paid'], Journal::$entries);
     }
 
+    public function testCreatesMiddlewareWithConstructorDependencies(): void
+    {
+        $events = EventRouterFactory::create();
+        $events->listen('order.paid', RecordingListener::class)->add(MarkingMiddleware::class);
+
+        $events->dispatch(new Event('order.paid'));
+
+        self::assertSame(['MarkingMiddleware mark', 'RecordingListener order.paid'], Journal::$entries);
+    }
+
     public function testTakesMiddlewareFromContainer(): void
     {
-        $events = EventRouterFactory::create(new ArrayContainer([RecordingMiddleware::class => self::middleware('from-container')]));
+        $events = EventRouterFactory::create(new PhpDiContainer([RecordingMiddleware::class => self::middleware('from-container')]));
         $events->listen('order.paid', RecordingListener::class)->add(RecordingMiddleware::class);
 
         $events->dispatch(new Event('order.paid'));
@@ -206,44 +224,13 @@ final class DispatchTest extends TestCase
         self::assertSame(['→ from-container', 'RecordingListener order.paid', '← from-container'], Journal::$entries);
     }
 
-    public function testFallsBackToNewWhenContainerDoesNotKnowMiddleware(): void
+    public function testListenersGetTheSameContainerAsRouter(): void
     {
-        $events = EventRouterFactory::create(new ArrayContainer([]));
-        $events->listen('order.paid', RecordingListener::class)->add(RecordingMiddleware::class);
+        $container = new PhpDiContainer();
 
-        $events->dispatch(new Event('order.paid'));
+        EventRouterFactory::create($container);
 
-        self::assertSame(['RecordingMiddleware', 'RecordingListener order.paid'], Journal::$entries);
-    }
-
-    public function testUnknownListenerClassFailsOnlyThisListener(): void
-    {
-        /** @var class-string<ListenerInterface> $missing */
-        $missing = 'App\Missing\Listener';
-
-        $events = EventRouterFactory::create();
-        $events->listen('order.paid', $missing);
-        $events->listen('order.paid', self::listener('next'));
-
-        $report = $events->dispatch(new Event('order.paid'));
-
-        self::assertSame([ListenerStatusEnum::Failed, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
-        self::assertStringContainsString('App\Missing\Listener', (string)$report->getListeners()[0]->getError()?->getMessage());
-    }
-
-    public function testUnknownMiddlewareClassFailsOnlyItsListener(): void
-    {
-        /** @var class-string<MiddlewareInterface> $missing */
-        $missing = 'App\Missing\Middleware';
-
-        $events = EventRouterFactory::create();
-        $events->listen('order.paid', self::listener('guarded'))->add($missing);
-        $events->listen('order.paid', self::listener('next'));
-
-        $report = $events->dispatch(new Event('order.paid'));
-
-        self::assertSame(['next {}'], Journal::$entries);
-        self::assertSame([ListenerStatusEnum::Failed, ListenerStatusEnum::Handled], self::statuses($report->getListeners()));
+        self::assertSame($container, Container::getInstance());
     }
 
     public function testReportKeepsRouteEventAndDuration(): void

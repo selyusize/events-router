@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Routing;
 
 use Override;
+use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Contract\Routing\RouteGroupInterface;
 use Selyusize\EventsRouter\Topic\TopicPattern;
@@ -53,10 +54,13 @@ final class RouteGroup implements RouteGroupInterface
     #[Override]
     public function listen(string $pattern, string $listener): Route
     {
-        // Проверяем шаблон сразу, чтобы ошибка указывала на строку с listen().
+        // Проверяем шаблон и класс сразу, чтобы ошибка указывала на строку с listen().
         // Префикс роутера добавится при сборке таблицы.
         TopicPattern::fromString(self::join($this->path, $pattern));
+        RouteAssert::classExists($listener, 'класс слушателя %s не найден');
+        RouteAssert::implementsInterface($listener, ListenerInterface::class, 'слушатель %s должен реализовать %2$s');
 
+        /** @var class-string<ListenerInterface> $listener Psalm после Assert считает, что это может быть и объект */
         $route = new Route($pattern, $listener, $this->revision);
         $this->children[] = $route;
         $this->revision->bump();
@@ -79,6 +83,8 @@ final class RouteGroup implements RouteGroupInterface
     #[Override]
     public function add(MiddlewareInterface|string $middleware): self
     {
+        RouteAssert::middleware($middleware);
+
         $this->middleware[] = $middleware;
         $this->revision->bump();
 

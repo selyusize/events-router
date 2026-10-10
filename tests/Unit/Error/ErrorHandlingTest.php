@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Selyusize\EventsRouter\Tests\Unit\Error;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Log\AbstractLogger;
@@ -17,6 +18,7 @@ use Selyusize\EventsRouter\Dispatch\ListenerReport;
 use Selyusize\EventsRouter\Dispatch\ListenerStatusEnum;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
+use Selyusize\EventsRouter\Exception\InvalidConfig;
 use Selyusize\EventsRouter\Service\Error\FailureFormatter;
 use Selyusize\EventsRouter\Service\Error\PsrLoggerErrorHandler;
 use Selyusize\EventsRouter\Tests\Fixture\Journal;
@@ -35,28 +37,74 @@ final class ErrorHandlingTest extends TestCase
         ScriptedListener::reset();
     }
 
-    public function testDefaultHandlerWritesOneLineToErrorLog(): void
+    public function testDefaultHandlerWritesFailureToLogPath(): void
     {
-        $log = tempnam(sys_get_temp_dir(), 'events-router');
-        self::assertIsString($log);
-        $previous = ini_set('error_log', $log);
+        $directory = sys_get_temp_dir() . '/events-router-test-' . bin2hex(random_bytes(4));
 
         try {
-            $events = EventRouterFactory::create();
+            $events = EventRouterFactory::create(config: ['log_path' => $directory . '/{level}/{date}.log']);
             $listener = self::listener('broken', new RuntimeException('сервис бонусов недоступен'));
             $events->listen('order.{order_id}.paid', $listener);
             $events->dispatch(new Event('order.42.paid'));
+
+            $written = (string)file_get_contents($directory . '/error/' . date('Y-m-d') . '.log');
         } finally {
-            ini_set('error_log', (string)$previous);
+            exec('rm -rf ' . escapeshellarg($directory));
         }
 
-        $written = (string)file_get_contents($log);
-        unlink($log);
-
         self::assertStringContainsString(
-            'events-router: слушатель ' . $listener . ' упал на событии order.42.paid: RuntimeException: сервис бонусов недоступен в ' . __FILE__,
+            'ERROR events-router: слушатель ' . $listener . ' упал на событии order.42.paid: RuntimeException: сервис бонусов недоступен в ' . __FILE__,
             $written,
         );
+        self::assertStringContainsString('"attributes":{"order_id":"42"}', $written);
+    }
+
+    public function testSetLoggerReplacesFileLog(): void
+    {
+        $logger = self::collectingLogger();
+
+        $events = EventRouterFactory::create()->setLogger($logger);
+        $events->listen('order.paid', self::listener('broken', new RuntimeException('сбой')));
+        $events->dispatch(new Event('order.paid'));
+
+        self::assertCount(1, $logger->records);
+        self::assertSame(LogLevel::ERROR, $logger->records[0][0]);
+    }
+
+    public function testCustomHandlerTakesPrecedenceOverLogger(): void
+    {
+        $logger = self::collectingLogger();
+        $handler = self::collectingHandler();
+
+        $events = EventRouterFactory::create()->setErrorHandler($handler)->setLogger($logger);
+        $events->listen('order.paid', self::listener('broken', new RuntimeException('сбой')));
+        $events->dispatch(new Event('order.paid'));
+
+        self::assertSame([], $logger->records);
+        self::assertCount(1, $handler->failures);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    #[DataProvider('provideInvalidConfigIsRejectedCases')]
+    public function testInvalidConfigIsRejected(array $config, string $message): void
+    {
+        $this->expectException(InvalidConfig::class);
+        $this->expectExceptionMessage($message);
+
+        EventRouterFactory::create(config: $config);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, string}>
+     */
+    public static function provideInvalidConfigIsRejectedCases(): iterable
+    {
+        yield 'неизвестный ключ' => [['logPath' => '/tmp/x.log'], 'неизвестный ключ "logPath", допустимые: "log_path", "log_dispatch"'];
+        yield 'log_dispatch не bool' => [['log_dispatch' => 'yes'], 'log_dispatch должен быть true или false'];
+        yield 'пустой путь' => [['log_path' => ''], 'log_path должен быть непустой строкой'];
+        yield 'путь не строка' => [['log_path' => 42], 'log_path должен быть непустой строкой, передано integer'];
     }
 
     public function testCustomHandlerReceivesEachFailureInOrder(): void
@@ -181,17 +229,7 @@ final class ErrorHandlingTest extends TestCase
 
     public function testPsrLoggerHandlerLogsWithContext(): void
     {
-        $logger = new class extends AbstractLogger {
-            /**
-             * @var list<array{mixed, string, array<array-key, mixed>}>
-             */
-            public array $records = [];
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                $this->records[] = [$level, (string)$message, $context];
-            }
-        };
+        $logger = self::collectingLogger();
         $error = new RuntimeException('сбой');
 
         $events = EventRouterFactory::create()->setErrorHandler(new PsrLoggerErrorHandler($logger, LogLevel::CRITICAL));
@@ -217,6 +255,24 @@ final class ErrorHandlingTest extends TestCase
         self::assertStringContainsString("\0", $anonymous);
         self::assertStringNotContainsString("\0", FailureFormatter::readableClass($anonymous));
         self::assertStringEndsWith('@anonymous', FailureFormatter::readableClass($anonymous));
+    }
+
+    /**
+     * @return AbstractLogger&object{records: list<array{mixed, string, array<array-key, mixed>}>}
+     */
+    private static function collectingLogger(): AbstractLogger
+    {
+        return new class extends AbstractLogger {
+            /**
+             * @var list<array{mixed, string, array<array-key, mixed>}>
+             */
+            public array $records = [];
+
+            public function log($level, string|Stringable $message, array $context = []): void
+            {
+                $this->records[] = [$level, (string)$message, $context];
+            }
+        };
     }
 
     /**

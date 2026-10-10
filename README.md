@@ -18,7 +18,7 @@ return static function (EventRouter $events): void {
 ```
 
 ```php
-$events = EventRouterFactory::create($container);   // контейнер необязателен
+$events = EventRouterFactory::create($container);   // контейнер необязателен: по умолчанию PHP-DI
 (require __DIR__ . '/events.php')($events);
 
 $report = $events->dispatch(new Event('shop.order.42.paid', ['amount' => 1500]));
@@ -47,7 +47,9 @@ PHP 8.1+. Версия 0.x: API может меняться до 1.0, измен
 - шаблоны топиков: `order.{order_id}.paid`, `order.{id:\d+}`, `order.*.cancelled`, `order.#`;
 - группы и middleware как в Slim, порядок слушателей — порядок строк в файле;
 - отчёт о рассылке, изоляция ошибок слушателей, стратегии ошибок;
-- PSR-11 контейнер для middleware, PSR-14 адаптер, воркеры с источниками событий.
+- контейнер из коробки (PHP-DI) или свой PSR-11;
+- лог в файл по шаблону пути `{level}/{date}.log`, при желании — каждая рассылка со всеми слушателями;
+- PSR-14 адаптер, воркеры с источниками событий.
 
 ## Разработка
 

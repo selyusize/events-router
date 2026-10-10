@@ -1,6 +1,9 @@
 nav:
   - index.md
-  - Руководство: guide
+  - Обучение: tutorial
+  - Рецепты: how-to
+  - Справочник: reference
+  - Как это устроено: explanation
   - Ошибки: errors
   - Справочник API: api
   - Разработка: contributing

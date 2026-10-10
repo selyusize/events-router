@@ -14,3 +14,8 @@
 /start-architecture/
 
 plan.md
+
+# навыки AI-агентов: ставятся локально через npx skills
+/.agents/
+/.claude/
+/skills-lock.json

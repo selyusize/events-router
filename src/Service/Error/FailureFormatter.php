@@ -32,7 +32,7 @@ final class FailureFormatter
 
     /**
      * Имя класса без хвоста анонимного класса: после `@anonymous` в имени идёт
-     * нулевой байт и путь к файлу, а на нулевом байте error_log() обрезает строку.
+     * нулевой байт и путь к файлу, которым не место в строке лога.
      */
     public static function readableClass(string $class): string
     {

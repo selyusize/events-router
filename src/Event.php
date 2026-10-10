@@ -7,6 +7,8 @@ namespace Selyusize\EventsRouter;
 use Override;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Exception\InvalidEventName;
+use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 /**
  * Событие со строковым именем — когда отдельный класс события не нужен.
@@ -45,20 +47,13 @@ final class Event implements EventInterface
         private readonly mixed $payload = null,
         private array $attributes = [],
     ) {
-        if ($name === '') {
-            throw InvalidEventName::because($name, 'имя пустое');
-        }
-
-        if (preg_match('/\s/u', $name) === 1) {
-            throw InvalidEventName::because($name, 'имя содержит пробельные символы');
-        }
-
-        if (strpbrk($name, '*#{}') !== false) {
-            throw InvalidEventName::because($name, 'символы *, #, {, } допустимы только в шаблонах маршрутов, а не в имени события');
-        }
-
-        if (\in_array('', explode('.', $name), true)) {
-            throw InvalidEventName::because($name, 'пустой сегмент: точка в начале, в конце или две точки подряд');
+        try {
+            Assert::stringNotEmpty($name, 'имя пустое');
+            Assert::notRegex($name, '/\s/u', 'имя содержит пробельные символы');
+            Assert::notRegex($name, '/[*#{}]/', 'символы *, #, {, } допустимы только в шаблонах маршрутов, а не в имени события');
+            Assert::notRegex($name, '/^\.|\.\.|\.$/', 'пустой сегмент: точка в начале, в конце или две точки подряд');
+        } catch (InvalidArgumentException $error) {
+            throw InvalidEventName::because($name, $error->getMessage());
         }
 
         $this->name = $name;

@@ -16,6 +16,7 @@ interface RouteInterface
      *
      * Добавленный последним выполняется первым, как в Slim.
      * Middleware групп выполняются раньше middleware маршрута.
+     * Если класс middleware не найден или не реализует MiddlewareInterface — InvalidRoute.
      *
      * @param class-string<MiddlewareInterface>|MiddlewareInterface $middleware
      */

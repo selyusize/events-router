@@ -6,6 +6,7 @@ namespace Selyusize\EventsRouter;
 
 use Closure;
 use Override;
+use Psr\Log\LoggerInterface;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\Contract\Error\ErrorHandlerInterface;
@@ -16,6 +17,7 @@ use Selyusize\EventsRouter\Dispatch\ErrorStrategyEnum;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
 use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Selyusize\EventsRouter\Routing\Route;
+use Selyusize\EventsRouter\Routing\RouteAssert;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Routing\RouteMatch;
 use Selyusize\EventsRouter\Routing\RouteTable;
@@ -114,13 +116,26 @@ final class EventRouter implements RouteCollectorInterface
      */
     public function add(MiddlewareInterface|string $middleware): self
     {
+        RouteAssert::middleware($middleware);
+
         $this->middleware[] = $middleware;
 
         return $this;
     }
 
     /**
-     * Куда отправлять ошибки слушателей. По умолчанию — PhpErrorLogHandler, в error_log().
+     * Лог роутера вместо файлового (FileLogger по пути `log_path`): например, Monolog проекта.
+     * Сюда пишутся ошибки слушателей, пока не задан свой обработчик через setErrorHandler().
+     */
+    public function setLogger(LoggerInterface $logger): self
+    {
+        $this->dispatcher = $this->dispatcher->withLogger($logger);
+
+        return $this;
+    }
+
+    /**
+     * Куда отправлять ошибки слушателей. По умолчанию — в лог роутера (см. setLogger()).
      */
     public function setErrorHandler(ErrorHandlerInterface $handler): self
     {

@@ -23,7 +23,7 @@ $container = null;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouterFactory;
 
-$events = EventRouterFactory::create(container: $container);   // любой PSR-11 или null
+$events = EventRouterFactory::create(container: $container);   // любой PSR-11 или null — тогда PHP-DI
 (require __DIR__ . '/events.php')($events);
 
 $report = $events->dispatch(new Event('shop.order.42.paid', ['amount' => 1500]));

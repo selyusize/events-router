@@ -41,6 +41,8 @@ final class Route implements RouteInterface
     #[Override]
     public function add(MiddlewareInterface|string $middleware): self
     {
+        RouteAssert::middleware($middleware);
+
         $this->middleware[] = $middleware;
         $this->revision->bump();
 

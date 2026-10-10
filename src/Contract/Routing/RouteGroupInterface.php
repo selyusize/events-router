@@ -15,6 +15,7 @@ interface RouteGroupInterface extends RouteCollectorInterface
      * Добавить middleware всем маршрутам группы, включая вложенные группы.
      *
      * Добавленный последним выполняется первым, как в Slim.
+     * Если класс middleware не найден или не реализует MiddlewareInterface — InvalidRoute.
      *
      * @param class-string<MiddlewareInterface>|MiddlewareInterface $middleware
      */

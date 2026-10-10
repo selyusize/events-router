@@ -22,6 +22,7 @@ interface RouteCollectorInterface
      * Вызываются они строго в порядке объявления, приоритетов нет.
      *
      * Если шаблон вместе с префиксами групп записан с ошибкой — InvalidTopicPattern.
+     * Если класс слушателя не найден или не реализует ListenerInterface — InvalidRoute.
      *
      * @param string $pattern шаблон относительно префикса группы; в группе может быть пустым
      * @param class-string<ListenerInterface> $listener

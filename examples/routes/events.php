@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/classes.php';
+
 // --8<-- [start:example]
 use App\Events\Listener;
 use App\Events\Middleware;

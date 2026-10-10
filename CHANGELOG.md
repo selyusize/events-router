@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-10
+
+### Добавлено
+
+- **Контейнер.** Ядро зависит от `php-di/php-di` 7. Статический фасад `Container\Container` (`get()`, `getInstance()`, `set()`) — откуда слушатели берут зависимости. `EventRouterFactory::create($container)` подключает к нему контейнер проекта, без контейнера работает PHP-DI с автосвязыванием.
+- **Лог в файл.** `Service\Log\FileLogger` (PSR-3): путь — шаблон с подстановками `{date}` и `{level}`, папки создаются сами. Путь задаётся конфигом фабрики: `EventRouterFactory::create($container, ['log_path' => '…/{level}/{date}.log'])`. `EventRouter::setLogger()` подключает свой логгер вместо файла.
+- **Лог рассылки.** Ключ конфига `log_dispatch`: на каждое событие одна запись уровня `info` — имя, число слушателей, время, и по каждому слушателю статус, время, атрибуты и ошибка. Событие без слушателей тоже пишется. Payload не пишется.
+- **Конфиг фабрики.** `EventRouterFactory::create($container, array $config)` с ключами `log_path` и `log_dispatch`. Неизвестный ключ или значение не того типа — исключение `InvalidConfig`.
+- Исключение `InvalidRoute`: класс слушателя или middleware в маршруте не найден или не реализует нужный интерфейс.
+
+### Изменено
+
+- **Несовместимо:** ошибки слушателей по умолчанию пишутся не в `error_log()`, а в лог роутера (`PsrLoggerErrorHandler` + `FileLogger`). `PhpErrorLogHandler` удалён. `psr/log` перешёл из `suggest` в обязательные зависимости.
+- **Несовместимо:** классы проверяются при объявлении маршрута: `listen()` и `add()` бросают `InvalidRoute`. Раньше такой слушатель падал только при рассылке со статусом `Failed`.
+- **Несовместимо:** middleware, указанный именем класса, всегда берётся из контейнера. Ветки `new` без аргументов больше нет: с PSR-11 контейнером без автосвязывания middleware нужно зарегистрировать в нём. Middleware с зависимостями в конструкторе теперь создаются без регистрации (PHP-DI по умолчанию).
+- Проверки аргументов (`Event`, `TopicPattern`, маршруты) переписаны на `webmozart/assert`. Исключения и тексты ошибок прежние, кроме имени параметра в ошибке snake_case: `имя параметра "orderId"` вместо `"{orderId}"`.
+- Документация разложена по [Diátaxis](https://diataxis.fr/): «Обучение», «Рецепты», «Справочник», «Как это устроено». Новые страницы: «Подключить контейнер», «Настроить лог», «Конфигурация», «Почему так». Старые адреса `guide/*` больше не работают.
+
+## [0.2.0] — 2026-10-10
+
 ### Изменено
 
 - **Несовместимо:** enum называются с суффиксом `Enum`: `ErrorStrategy` → `ErrorStrategyEnum`, `ListenerStatus` → `ListenerStatusEnum`.
@@ -37,5 +57,7 @@
 - **PSR-14.** `Psr14EventDispatcher`: роутер под `Psr\EventDispatcher\EventDispatcherInterface`, объекты без `EventInterface` превращаются в события через явный маппер. Ошибка — `UnmappableEvent`.
 - **Документация** на GitHub Pages: руководство с исполняемыми примерами, справочник API из PHPDoc, страница на каждое исключение.
 
-[Unreleased]: https://github.com/selyusize/events-router/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/selyusize/events-router/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/selyusize/events-router/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/selyusize/events-router/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/selyusize/events-router/releases/tag/v0.1.0

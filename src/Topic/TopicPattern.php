@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Topic;
 
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
+use Webmozart\Assert\Assert;
+use Webmozart\Assert\InvalidArgumentException;
 
 /**
  * Шаблон топика — то, что пишется в маршруте вместо точного имени события.
@@ -56,85 +58,72 @@ final class TopicPattern
      */
     public static function fromString(string $pattern): self
     {
-        if ($pattern === '') {
-            throw InvalidTopicPattern::because($pattern, 'шаблон пустой');
-        }
-
-        if (preg_match('/^(?:[^{}]++|' . self::BRACES . ')*+$/', $pattern) !== 1) {
-            throw InvalidTopicPattern::because($pattern, substr_count($pattern, '{') > substr_count($pattern, '}')
-                ? 'не закрыта фигурная скобка'
-                : 'лишняя закрывающая фигурная скобка');
-        }
-
         $regex = '';
         $parameters = [];
 
-        // Точки внутри скобок — часть regex параметра, а не разделитель сегментов
-        foreach (preg_split('/' . self::BRACES . '(*SKIP)(*FAIL)|\./', $pattern) ?: [] as $segment) {
-            if ($segment === '') {
-                throw InvalidTopicPattern::because($pattern, 'пустой сегмент: точка в начале, в конце или две точки подряд');
+        // Assert проверяет аргументы, разбор скобок и regex ограничений — сам шаблон.
+        // Ошибка Assert становится InvalidTopicPattern со ссылкой на документацию.
+        try {
+            Assert::stringNotEmpty($pattern, 'шаблон пустой');
+
+            if (preg_match('/^(?:[^{}]++|' . self::BRACES . ')*+$/', $pattern) !== 1) {
+                throw InvalidTopicPattern::because($pattern, substr_count($pattern, '{') > substr_count($pattern, '}')
+                    ? 'не закрыта фигурная скобка'
+                    : 'лишняя закрывающая фигурная скобка');
             }
 
-            if ($segment === '#') {
-                $regex .= '(?:\.[^.]+)*';
+            // Точки внутри скобок — часть regex параметра, а не разделитель сегментов
+            foreach (preg_split('/' . self::BRACES . '(*SKIP)(*FAIL)|\./', $pattern) ?: [] as $segment) {
+                Assert::stringNotEmpty($segment, 'пустой сегмент: точка в начале, в конце или две точки подряд');
 
-                continue;
-            }
+                if ($segment === '#') {
+                    $regex .= '(?:\.[^.]+)*';
 
-            if ($segment === '*') {
-                $regex .= '\.[^.]+';
-
-                continue;
-            }
-
-            if (preg_match('/^' . self::BRACES . '$/', $segment) !== 1) {
-                if (str_contains($segment, '{')) {
-                    throw InvalidTopicPattern::because($pattern, \sprintf('параметр в сегменте "%s" должен занимать весь сегмент, например order.{order_id}', $segment));
+                    continue;
                 }
 
-                if (strpbrk($segment, '*#') !== false) {
-                    throw InvalidTopicPattern::because($pattern, \sprintf('* и # в сегменте "%s" должны занимать весь сегмент, например order.*', $segment));
+                if ($segment === '*') {
+                    $regex .= '\.[^.]+';
+
+                    continue;
                 }
 
-                if (preg_match('/\s/u', $segment) === 1) {
-                    throw InvalidTopicPattern::because($pattern, \sprintf('сегмент "%s" содержит пробельные символы', $segment));
+                if (preg_match('/^' . self::BRACES . '$/', $segment) !== 1) {
+                    Assert::notContains($segment, '{', 'параметр в сегменте %s должен занимать весь сегмент, например order.{order_id}');
+                    Assert::notRegex($segment, '/[*#]/', '* и # в сегменте %s должны занимать весь сегмент, например order.*');
+                    Assert::notRegex($segment, '/\s/u', 'сегмент %s содержит пробельные символы');
+
+                    $regex .= '\.' . preg_quote($segment);
+
+                    continue;
                 }
 
-                $regex .= '\.' . preg_quote($segment);
+                $definition = substr($segment, 1, -1);
+                $colon = strpos($definition, ':');
+                $name = $colon === false ? $definition : substr($definition, 0, $colon);
+                $constraint = $colon === false ? null : substr($definition, $colon + 1);
 
-                continue;
+                Assert::regex($name, '/^[a-z][a-z0-9_]*$/', 'имя параметра %s должно быть в snake_case: строчные латинские буквы, цифры и _, начинается с буквы, например {order_id}');
+                // В $name уже нет % — его можно подставить в сообщение заранее
+                Assert::keyNotExists($parameters, $name, \sprintf('параметр {%s} встречается дважды', $name));
+                Assert::notSame($constraint, '', \sprintf('пустое ограничение у параметра {%s:}: уберите двоеточие или добавьте regex', $name));
+
+                // Ограничение проверяется на весь сегмент: от точки до точки или конца топика
+                $check = $constraint === null ? '' : '(?=(?:' . $constraint . ')(?:\.|$))';
+
+                if ($check !== '' && @preg_match('{' . $check . '}u', '') === false) {
+                    throw InvalidTopicPattern::because($pattern, \sprintf(
+                        'ошибка в regex параметра {%s}: %s',
+                        $name,
+                        (string)preg_replace('/^preg_match\(\): /', '', error_get_last()['message'] ?? preg_last_error_msg()),
+                    ));
+                }
+
+                $regex .= '\.' . $check . '(?P<' . $name . '>[^.]+)';
+                $parameters[$name] = true;
             }
-
-            $definition = substr($segment, 1, -1);
-            $colon = strpos($definition, ':');
-            $name = $colon === false ? $definition : substr($definition, 0, $colon);
-            $constraint = $colon === false ? null : substr($definition, $colon + 1);
-
-            if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
-                throw InvalidTopicPattern::because($pattern, \sprintf('имя параметра "{%s}" должно быть в snake_case: строчные латинские буквы, цифры и _, начинается с буквы, например {order_id}', $definition));
-            }
-
-            if (\in_array($name, $parameters, true)) {
-                throw InvalidTopicPattern::because($pattern, \sprintf('параметр {%s} встречается дважды', $name));
-            }
-
-            if ($constraint === '') {
-                throw InvalidTopicPattern::because($pattern, \sprintf('пустое ограничение у параметра {%s:}: уберите двоеточие или добавьте regex', $name));
-            }
-
-            // Ограничение проверяется на весь сегмент: от точки до точки или конца топика
-            $check = $constraint === null ? '' : '(?=(?:' . $constraint . ')(?:\.|$))';
-
-            if ($check !== '' && @preg_match('{' . $check . '}u', '') === false) {
-                throw InvalidTopicPattern::because($pattern, \sprintf(
-                    'ошибка в regex параметра {%s}: %s',
-                    $name,
-                    (string)preg_replace('/^preg_match\(\): /', '', error_get_last()['message'] ?? preg_last_error_msg()),
-                ));
-            }
-
-            $regex .= '\.' . $check . '(?P<' . $name . '>[^.]+)';
-            $parameters[] = $name;
+        } catch (InvalidArgumentException $error) {
+            throw InvalidTopicPattern::because($pattern, $error->getMessage());
         }
 
         // Фигурные скобки как разделители: внутри регулярного выражения они сбалансированы

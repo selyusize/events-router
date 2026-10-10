@@ -11,6 +11,8 @@ use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Routing\RouteGroup;
 use Selyusize\EventsRouter\Routing\RouteMatch;
 
+require_once __DIR__ . '/../../Fixture/routing-classes.php';
+
 /**
  * @internal
  */

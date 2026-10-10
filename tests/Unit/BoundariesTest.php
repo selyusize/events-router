@@ -15,6 +15,7 @@ use SplFileInfo;
  * ```text
  * Contract ← Topic ← Routing ← Dispatch ← Service ← EventRouter + EventRouterFactory
  * Contract ← Source (реализации источников событий)
+ * Container — фасад над PSR-11, ни от кого внутри не зависит
  * Psr14 — адаптер поверх EventRouter, внешний слой, как и сам роутер
  * ```
  *
@@ -42,6 +43,7 @@ final class BoundariesTest extends TestCase
         'Dispatch' => ['Contract', 'Routing'],
         'Service' => ['Contract', 'Topic', 'Routing', 'Dispatch', 'Exception'],
         'Source' => ['Contract'],
+        'Container' => [],
     ];
 
     /**

@@ -7,18 +7,23 @@ namespace Selyusize\EventsRouter\Tests\Unit\Routing;
 use Closure;
 use Fixture\Listener;
 use Fixture\Middleware;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
+use Selyusize\EventsRouter\Contract\Core\ListenerInterface;
 use Selyusize\EventsRouter\Contract\Core\MiddlewareInterface;
 use Selyusize\EventsRouter\EventRouter;
 use Selyusize\EventsRouter\EventRouterFactory;
+use Selyusize\EventsRouter\Exception\InvalidRoute;
 use Selyusize\EventsRouter\Exception\InvalidTopicPattern;
 use Selyusize\EventsRouter\Routing\CompiledRoute;
 use Selyusize\EventsRouter\Routing\RouteGroup;
+use Selyusize\EventsRouter\Tests\Fixture\NotAHandler;
+
+require_once __DIR__ . '/../../Fixture/routing-classes.php';
 
 /**
- * Классы из неймспейса Fixture не существуют: роутер не загружает классы
- * слушателей и middleware при регистрации, ему достаточно имени.
+ * Классы из неймспейса Fixture — пустые заглушки из routing-classes.php.
  *
  * @internal
  */
@@ -202,6 +207,57 @@ final class RoutingTest extends TestCase
         EventRouterFactory::create()->group('user.{id}', static function (RouteGroup $group): void {
             $group->listen('order.{id}', Listener\Any::class);
         });
+    }
+
+    /**
+     * @param Closure(EventRouter): mixed $declare
+     */
+    #[DataProvider('provideInvalidClassIsRejectedAtDeclarationCases')]
+    public function testInvalidClassIsRejectedAtDeclaration(Closure $declare, string $message): void
+    {
+        $this->expectException(InvalidRoute::class);
+        $this->expectExceptionMessage($message);
+
+        $declare(EventRouterFactory::create());
+    }
+
+    /**
+     * @return iterable<string, array{Closure(EventRouter): mixed, string}>
+     */
+    public static function provideInvalidClassIsRejectedAtDeclarationCases(): iterable
+    {
+        /** @var class-string<ListenerInterface> $missingListener */
+        $missingListener = 'Fixture\Listener\Missing';
+
+        /** @var class-string<MiddlewareInterface> $missingMiddleware */
+        $missingMiddleware = 'Fixture\Middleware\Missing';
+
+        /** @var class-string<ListenerInterface> $notListener */
+        $notListener = NotAHandler::class;
+
+        /** @var class-string<MiddlewareInterface> $notMiddleware */
+        $notMiddleware = NotAHandler::class;
+
+        yield 'слушатель не найден' => [
+            static fn (EventRouter $events): mixed => $events->listen('order.paid', $missingListener),
+            'класс слушателя "Fixture\Listener\Missing" не найден',
+        ];
+        yield 'слушатель без интерфейса' => [
+            static fn (EventRouter $events): mixed => $events->listen('order.paid', $notListener),
+            'должен реализовать "' . ListenerInterface::class . '"',
+        ];
+        yield 'middleware маршрута не найден' => [
+            static fn (EventRouter $events): mixed => $events->listen('order.paid', Listener\Any::class)->add($missingMiddleware),
+            'класс middleware "Fixture\Middleware\Missing" не найден',
+        ];
+        yield 'middleware группы без интерфейса' => [
+            static fn (EventRouter $events): mixed => $events->group('order', static function (): void {})->add($notMiddleware),
+            'должен реализовать "' . MiddlewareInterface::class . '"',
+        ];
+        yield 'middleware роутера не найден' => [
+            static fn (EventRouter $events): mixed => $events->add($missingMiddleware),
+            'класс middleware "Fixture\Middleware\Missing" не найден',
+        ];
     }
 
     public function testRouteAndCompiledRoute(): void

@@ -1,0 +1,6 @@
+info/2026-10-10.log
+[2026-10-10 14:03:12] INFO events-router: shop.order.42.paid, слушателей: 2, 0.4 мс {"listeners":[{"listener":"MarkOrderPaid","status":"Handled","ms":0.1,"attributes":{"order_id":"42"}},{"listener":"AccrueBonuses","status":"Failed","ms":0.1,"attributes":{"order_id":"42"},"error":"RuntimeException: сервис бонусов недоступен"}]}
+
+error/2026-10-10.log
+[2026-10-10 14:03:12] ERROR events-router: слушатель AccrueBonuses упал на событии shop.order.42.paid: RuntimeException: сервис бонусов недоступен в … {"exception":{"class":"RuntimeException","message":"сервис бонусов недоступен","file":"…","trace":"…"},"event":"shop.order.42.paid","attributes":{"order_id":"42"},"listener":"AccrueBonuses"}
+
