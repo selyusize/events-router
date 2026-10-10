@@ -16,6 +16,7 @@ use SplFileInfo;
  * Contract ← Topic ← Routing ← Dispatch ← Service ← EventRouter + EventRouterFactory
  * Contract ← Source (реализации источников событий)
  * Container — фасад над PSR-11, ни от кого внутри не зависит
+ * Bitrix — адаптер поверх EventRouter, как Psr14; ядро о нём не знает
  * Psr14 — адаптер поверх EventRouter, внешний слой, как и сам роутер
  * ```
  *
@@ -72,6 +73,21 @@ final class BoundariesTest extends TestCase
         sort($violations);
 
         self::assertSame(self::KNOWN_VIOLATIONS, $violations, 'Нарушены границы компонентов (см. карту ALLOWED)');
+    }
+
+    public function testCoreDoesNotDependOnBitrix(): void
+    {
+        $dependents = [];
+
+        foreach (self::files() as $component => $files) {
+            foreach ($files as $file => $dependencies) {
+                if ($component !== 'Bitrix' && \in_array('Bitrix', $dependencies, true)) {
+                    $dependents[] = $file;
+                }
+            }
+        }
+
+        self::assertSame([], $dependents, 'Ядро не должно зависеть от адаптера Bitrix');
     }
 
     /**

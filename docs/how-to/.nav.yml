@@ -4,6 +4,7 @@ nav:
   - logging.md
   - errors.md
   - workers.md
+  - bitrix.md
   - typed-events.md
   - psr14.md
   - from-slim.md

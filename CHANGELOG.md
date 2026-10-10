@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-10-10
+
+### Добавлено
+
+- **Bitrix.** `Bitrix\BitrixEventBridge` переносит события `EventManager` Bitrix в маршруты роутера: группа `bitrix`, топик `bitrix.<модуль>.<Событие>`. `attach()` подписывается сразу, `attachLazy()` — по списку событий из файла и собирает роутер только при первом событии. Один обработчик работает и со старым API (`&$arFields` по ссылке), и с D7 (`Bitrix\Main\Event`).
+- `Bitrix\BitrixEvent` — payload события Bitrix: `getFields()`, `setField()`, `getArguments()`, `getD7Event()`, `cancel()`. Отмена возвращает Bitrix `false` с `$APPLICATION->ThrowException()` или `EventResult::ERROR` и останавливает остальных слушателей.
+- `BitrixEventBridge::topic()` кодирует точку в id партнёрского модуля: `rasa.shop` → `rasa~shop`.
+- Страница «Подключить события Bitrix».
+
 ## [0.3.0] — 2026-10-10
 
 ### Добавлено
@@ -57,7 +66,8 @@
 - **PSR-14.** `Psr14EventDispatcher`: роутер под `Psr\EventDispatcher\EventDispatcherInterface`, объекты без `EventInterface` превращаются в события через явный маппер. Ошибка — `UnmappableEvent`.
 - **Документация** на GitHub Pages: руководство с исполняемыми примерами, справочник API из PHPDoc, страница на каждое исключение.
 
-[Unreleased]: https://github.com/selyusize/events-router/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/selyusize/events-router/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/selyusize/events-router/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/selyusize/events-router/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/selyusize/events-router/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/selyusize/events-router/releases/tag/v0.1.0

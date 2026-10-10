@@ -46,8 +46,15 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Selyusize\\EventsRouter\\Tests\\": "tests/"
-        }
+            "Selyusize\\EventsRouter\\Tests\\": "tests/",
+            "Bitrix\\Main\\": "tests/Stub/Bitrix/Main/"
+        },
+        "classmap": [
+            "tests/Stub/Global/CMain.php"
+        ],
+        "files": [
+            "tests/Stub/Global/functions.php"
+        ]
     },
     "config": {
         "sort-packages": true

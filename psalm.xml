@@ -14,4 +14,12 @@
             <directory name="vendor"/>
         </ignoreFiles>
     </projectFiles>
+
+    <!-- Классы Bitrix: в библиотеке их нет, в проекте их даёт ядро Bitrix -->
+    <stubs>
+        <file name="tests/Stub/Bitrix/Main/Event.php"/>
+        <file name="tests/Stub/Bitrix/Main/EventManager.php"/>
+        <file name="tests/Stub/Bitrix/Main/EventResult.php"/>
+        <file name="tests/Stub/Global/CMain.php"/>
+    </stubs>
 </psalm>
