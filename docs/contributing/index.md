@@ -52,3 +52,15 @@ Contract ← Topic ← Routing ← Dispatch ← Service ← EventRouter + EventR
 Границы проверяет `tests/Unit/BoundariesTest.php`: импорт «против течения» валит тесты.
 
 Стиль кода — `.php-cs-fixer.dist.php`, статический анализ — Psalm, уровень 1.
+
+## Зависимости
+
+Dependabot (`.github/dependabot.yml`) раз в неделю, по понедельникам, открывает pull request'ы с обновлениями:
+
+| Что | Где | Как |
+| --- | --- | --- |
+| PHP-пакеты | `composer.json` | ограничения версий расширяются (к `^1.0` добавляется `^2.0`), а не сужаются: библиотека остаётся совместимой со старыми версиями; инструменты разработки — одним pull request'ом |
+| действия CI | `.github/workflows/` | все — одним pull request'ом |
+| генератор сайта | `requirements-docs.txt` | отдельным pull request'ом: версия Zensical зафиксирована, обновляем осознанно |
+
+Каждый такой pull request проходит CI на PHP 8.1–8.4 и сборку документации. Зелёный — можно сливать.
