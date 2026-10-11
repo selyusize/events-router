@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-10-11
+
 ### Добавлено
 
 - **`BitrixEvent::getHandlers()`** — все обработчики, которые Bitrix вызовет на событие, в порядке вызова: из `addEventHandler()` в `init.php`, из модулей (`b_module_to_module`) и сам мост роутера. Список берётся из `EventManager`, поэтому в нём обработчики любых неймспейсов, а не только слушатели роутера.
@@ -106,7 +108,8 @@
 - **PSR-14.** `Psr14EventDispatcher`: роутер под `Psr\EventDispatcher\EventDispatcherInterface`, объекты без `EventInterface` превращаются в события через явный маппер. Ошибка — `UnmappableEvent`.
 - **Документация** на GitHub Pages: руководство с исполняемыми примерами, справочник API из PHPDoc, страница на каждое исключение.
 
-[Unreleased]: https://github.com/selyusize/events-router/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/selyusize/events-router/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/selyusize/events-router/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/selyusize/events-router/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/selyusize/events-router/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/selyusize/events-router/compare/v0.4.0...v0.5.0
