@@ -12,9 +12,11 @@ use CMain;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Selyusize\EventsRouter\Bitrix\BitrixEvent;
 use Selyusize\EventsRouter\Bitrix\BitrixEventBridge;
 use Selyusize\EventsRouter\Contract\Core\EventInterface;
+use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouter;
 use Selyusize\EventsRouter\EventRouterFactory;
 use Selyusize\EventsRouter\Exception\InvalidRoute;
@@ -34,6 +36,8 @@ final class BitrixEventBridgeTest extends TestCase
     protected function setUp(): void
     {
         EventManager::resetInstance();
+        // Мост из прошлого теста: dispatch() нашёл бы его роутер
+        (new ReflectionProperty(BitrixEventBridge::class, 'attached'))->setValue(null, null);
         Journal::reset();
         ScriptedListener::reset();
         $GLOBALS['APPLICATION'] = new CMain();
@@ -292,6 +296,106 @@ final class BitrixEventBridgeTest extends TestCase
 
         self::assertSame(1, $built);
         self::assertSame(['bitrix.main.OnAfterUserAdd'], Journal::$entries);
+    }
+
+    public function testOwnEventGoesToSameRouterAsBitrixEvents(): void
+    {
+        $events = self::router(static function (RouteGroup $bitrix): void {
+            $bitrix->listen('main.OnAfterUserAdd', ScriptedListener::define(static function (EventInterface $event): void {}));
+        });
+        $events->listen('shop.order.{order_id}.paid', ScriptedListener::define(static function (EventInterface $event): void {
+            Journal::write($event->getName() . ' ' . (string)$event->getAttribute('order_id') . ' ' . (string)$event->getPayload());
+        }));
+        BitrixEventBridge::attach(EventManager::getInstance(), $events);
+
+        $report = BitrixEventBridge::dispatch(new Event('shop.order.42.paid', 'заказ'));
+
+        self::assertCount(1, $report->getListeners());
+        self::assertSame(['shop.order.42.paid 42 заказ'], Journal::$entries);
+    }
+
+    public function testBitrixListenerTranslatesEventToOwn(): void
+    {
+        $events = self::router(static function (RouteGroup $bitrix): void {
+            $bitrix->listen('sale.OnSaleOrderPaid', ScriptedListener::define(static function (EventInterface $event): void {
+                $orderId = (int)self::bitrix($event)->getD7Event()?->getParameter('ORDER_ID');
+                BitrixEventBridge::dispatch(new Event('shop.order.' . $orderId . '.paid'));
+                Journal::write('событие Bitrix обработано');
+            }));
+        });
+        $events->listen('shop.order.{order_id}.paid', ScriptedListener::define(static function (EventInterface $event): void {
+            Journal::write('свой слушатель: заказ ' . (string)$event->getAttribute('order_id'));
+        }));
+        BitrixEventBridge::attach(EventManager::getInstance(), $events);
+
+        (new D7Event('sale', 'OnSaleOrderPaid', ['ORDER_ID' => 42]))->send();
+
+        self::assertSame(['свой слушатель: заказ 42', 'событие Bitrix обработано'], Journal::$entries);
+    }
+
+    public function testLazyRouterIsBuiltOnceForOwnAndBitrixEvents(): void
+    {
+        $file = $this->directory . '/cache/bitrix-events.php';
+        $built = 0;
+        $router = static function () use (&$built): EventRouter {
+            ++$built;
+
+            $events = self::router(static function (RouteGroup $bitrix): void {
+                $bitrix->listen('main.OnAfterUserAdd', ScriptedListener::define(static function (EventInterface $event): void {
+                    Journal::write($event->getName());
+                }));
+            });
+            $events->listen('shop.cart.cleared', ScriptedListener::define(static function (EventInterface $event): void {
+                Journal::write($event->getName());
+            }));
+
+            return $events;
+        };
+
+        // Первый хит: роутер собирается ради списка событий, и мост берёт его же
+        BitrixEventBridge::attachLazy(EventManager::getInstance(), $router, $file);
+        BitrixEventBridge::dispatch(new Event('shop.cart.cleared'));
+        self::assertSame(1, $built);
+
+        // Следующий хит: роутер собирается при первом событии — здесь своём — и один раз
+        EventManager::resetInstance();
+        $built = 0;
+        BitrixEventBridge::attachLazy(EventManager::getInstance(), $router, $file);
+        self::assertSame(0, $built);
+
+        BitrixEventBridge::dispatch(new Event('shop.cart.cleared'));
+        $arFields = [];
+        self::fireOldStyle('main', 'OnAfterUserAdd', $arFields);
+
+        self::assertSame(1, $built);
+        self::assertSame(['shop.cart.cleared', 'shop.cart.cleared', 'bitrix.main.OnAfterUserAdd'], Journal::$entries);
+    }
+
+    public function testDispatchBeforeAttachIsRejected(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Мост Bitrix не подключён: вызовите BitrixEventBridge::attachLazy() или attach() до рассылки события shop.order.42.paid');
+
+        BitrixEventBridge::dispatch(new Event('shop.order.42.paid'));
+    }
+
+    public function testOwnEventUnderBitrixPrefixIsRejected(): void
+    {
+        $events = self::router(static function (RouteGroup $bitrix): void {
+            $bitrix->listen('main.OnAfterUserAdd', ScriptedListener::define(static function (EventInterface $event): void {
+                Journal::write('не должен вызываться');
+            }));
+        });
+        BitrixEventBridge::attach(EventManager::getInstance(), $events);
+
+        try {
+            BitrixEventBridge::dispatch(new Event('bitrix.main.OnAfterUserAdd'));
+            self::fail('Ожидалось LogicException');
+        } catch (LogicException $error) {
+            self::assertStringContainsString('под префиксом событий Bitrix bitrix', $error->getMessage());
+        }
+
+        self::assertSame([], Journal::$entries);
     }
 
     /**

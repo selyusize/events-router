@@ -8,6 +8,9 @@ use Bitrix\Main\EventManager;
 use Bitrix\Main\EventResult;
 use Closure;
 use CMain;
+use LogicException;
+use Selyusize\EventsRouter\Contract\Core\EventInterface;
+use Selyusize\EventsRouter\Dispatch\DispatchReport;
 use Selyusize\EventsRouter\Event;
 use Selyusize\EventsRouter\EventRouter;
 use Selyusize\EventsRouter\Exception\InvalidRoute;
@@ -39,21 +42,37 @@ use Selyusize\EventsRouter\Locale\Messages;
  * На каждое событие Bitrix мост регистрирует один обработчик `[$bridge, 'bitrix.main.OnAfterUserAdd']`,
  * а когда событие происходит — рассылает `new Event('bitrix.main.OnAfterUserAdd', new BitrixEvent(...))`.
  * Слушатель читает и меняет данные через BitrixEvent.
+ *
+ * Свои события проекта рассылает dispatch() — тем же роутером, что и события Bitrix:
+ *
+ * ```php
+ * BitrixEventBridge::dispatch(new Event('shop.order.42.paid', $order));
+ * ```
  */
 final class BitrixEventBridge
 {
     /**
-     * @param Closure(): EventRouter $router
+     * Последний подключённый мост: через него dispatch() находит роутер.
+     */
+    private static ?self $attached = null;
+
+    private ?EventRouter $router = null;
+
+    /**
+     * @param Closure(): EventRouter $buildRouter
      * @param array<string, array{string, string}> $events топик → [модуль, событие]
      */
     private function __construct(
         EventManager $manager,
-        private readonly Closure $router,
+        private readonly Closure $buildRouter,
         private readonly array $events,
+        private readonly string $prefix,
     ) {
         foreach ($events as $topic => [$moduleId, $eventType]) {
             $manager->addEventHandler($moduleId, $eventType, [$this, $topic]);
         }
+
+        self::$attached = $this;
     }
 
     /**
@@ -74,7 +93,7 @@ final class BitrixEventBridge
         [$moduleId, $eventType] = $this->events[$topic];
         $bitrix = new BitrixEvent($moduleId, $eventType, $arguments);
 
-        ($this->router)()->dispatch(new Event($topic, $bitrix));
+        $this->router()->dispatch(new Event($topic, $bitrix));
 
         $reason = $bitrix->getCancelReason();
 
@@ -98,6 +117,42 @@ final class BitrixEventBridge
     }
 
     /**
+     * Разослать своё событие проекта тем же роутером, к которому подключён мост.
+     *
+     * В проекте на Bitrix нет общего места, где лежит роутер: события Bitrix приходят через мост,
+     * а свои события рассылаются отсюда — из компонента, контроллера, агента или слушателя события
+     * Bitrix. Маршруты, middleware, лог и обработка ошибок у них общие. После attachLazy() роутер
+     * собирается при первом событии — своём или Bitrix — один раз на процесс.
+     *
+     * ```php
+     * BitrixEventBridge::dispatch(new Event('shop.order.' . $order->getId() . '.paid', $order));
+     * ```
+     *
+     * @throws LogicException если мост не подключён или топик события — под префиксом событий Bitrix
+     */
+    public static function dispatch(EventInterface $event): DispatchReport
+    {
+        $bridge = self::$attached;
+
+        if ($bridge === null) {
+            throw new LogicException(\sprintf(
+                Messages::translate('Мост Bitrix не подключён: вызовите BitrixEventBridge::attachLazy() или attach() до рассылки события %s'),
+                $event->getName(),
+            ));
+        }
+
+        if (str_starts_with($event->getName(), $bridge->prefix . '.')) {
+            throw new LogicException(\sprintf(
+                Messages::translate('Событие %s — под префиксом событий Bitrix %s: такие события вызывает сам Bitrix. Дайте своему событию другой топик'),
+                $event->getName(),
+                $bridge->prefix,
+            ));
+        }
+
+        return $bridge->router()->dispatch($event);
+    }
+
+    /**
      * Зарегистрировать обработчики сразу по маршрутам роутера.
      *
      * Подходит для разработки и консольных скриптов. На каждом хите сайта роутер
@@ -109,7 +164,7 @@ final class BitrixEventBridge
      */
     public static function attach(EventManager $manager, EventRouter $router, string $prefix = 'bitrix'): void
     {
-        new self($manager, static fn (): EventRouter => $router, self::events($router, $prefix));
+        new self($manager, static fn (): EventRouter => $router, self::events($router, $prefix), $prefix);
     }
 
     /**
@@ -130,7 +185,10 @@ final class BitrixEventBridge
             /** @var array<string, array{string, string}> $events файл пишет этот же метод */
             $events = require $eventsFile;
         } else {
-            $events = self::events($router(), $prefix);
+            // Роутер уже собран: мост возьмёт его, а не соберёт второй раз
+            $built = $router();
+            $router = static fn (): EventRouter => $built;
+            $events = self::events($built, $prefix);
 
             // Через временный файл: параллельный хит не прочитает недописанный список
             $directory = \dirname($eventsFile);
@@ -141,7 +199,7 @@ final class BitrixEventBridge
             }
         }
 
-        new self($manager, $router, $events);
+        new self($manager, $router, $events, $prefix);
     }
 
     /**
@@ -154,6 +212,14 @@ final class BitrixEventBridge
     public static function topic(string $moduleId, string $eventType): string
     {
         return str_replace('.', '~', $moduleId) . '.' . $eventType;
+    }
+
+    /**
+     * Роутер, собранный один раз на процесс: для событий Bitrix и для dispatch().
+     */
+    private function router(): EventRouter
+    {
+        return $this->router ??= ($this->buildRouter)();
     }
 
     /**

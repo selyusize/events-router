@@ -75,6 +75,8 @@ final class Messages
         'У события %s:%s нет массива полей в первом аргументе. %s' => 'Event %s:%s has no fields array in its first argument. %s',
         'Используйте getArguments().' => 'Use getArguments().',
         'Это событие D7: используйте getD7Event().' => 'This is a D7 event: use getD7Event().',
+        'Мост Bitrix не подключён: вызовите BitrixEventBridge::attachLazy() или attach() до рассылки события %s' => 'The Bitrix bridge is not attached: call BitrixEventBridge::attachLazy() or attach() before dispatching event %s',
+        'Событие %s — под префиксом событий Bitrix %s: такие события вызывает сам Bitrix. Дайте своему событию другой топик' => 'Event %s is under the Bitrix events prefix %s: such events are fired by Bitrix itself. Give your event another topic',
     ];
 
     private static LocaleEnum $locale = LocaleEnum::Ru;
