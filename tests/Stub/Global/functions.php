@@ -14,7 +14,7 @@ use Bitrix\Main\EventManager;
 
 if (!function_exists('GetModuleEvents')) {
     /**
-     * @return list<array<string, mixed>>
+     * @return array<array-key, array<string, mixed>>
      */
     function GetModuleEvents(string $moduleId, string $messageId, bool $returnArray = false): array
     {
@@ -30,7 +30,7 @@ if (!function_exists('GetModuleEvents')) {
     function ExecuteModuleEventEx(array $arEvent, array $arParams = []): mixed
     {
         /** @var callable $callback */
-        $callback = $arEvent['CALLBACK'];
+        $callback = $arEvent['CALLBACK'] ?? [$arEvent['TO_CLASS'], $arEvent['TO_METHOD']];
 
         return call_user_func_array($callback, $arParams);
     }

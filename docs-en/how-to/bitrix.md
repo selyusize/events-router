@@ -74,6 +74,23 @@ Bitrix fires events as always; the bridge changes nothing in it:
 --8<-- "bitrix/bridge.out"
 ```
 
+## See all handlers of an event
+
+Router listeners are not the only ones subscribed to a Bitrix event. Handlers from `init.php`, core modules and partner modules run next to them. `getHandlers()` lists them all in the order Bitrix will call them — the list comes from `EventManager`, not from the routes:
+
+```php
+$bitrix->getHandlers();
+// [
+//     'CLists::OnBeforeIBlockElementUpdate (lists)',      // module handler from b_module_to_module
+//     'App\\Catalog\\Listener\\NormalizeElement\\Handler::handle',
+//     'Selyusize\\EventsRouter\\Bitrix\\BitrixEventBridge::bitrix.iblock.OnBeforeIBlockElementUpdate',
+//     'updatePreviewText',                                // function
+//     'Closure /local/php_interface/init.php:42',
+// ]
+```
+
+The router bridge is in the list too: its position shows which handlers run before the router listeners and which run after. Logging this list from a middleware on the `bitrix` group helps when you need to find out who else changes the fields when a product is saved.
+
 ## If the module id has a dot
 
 Partner module ids contain a dot: `rasa.shop`. And a dot separates topic segments. For such modules build the topic with `topic()`, which encodes the dot as `~`:

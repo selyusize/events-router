@@ -153,6 +153,41 @@ final class BitrixEventBridgeTest extends TestCase
         $bitrix->getFields();
     }
 
+    public function testListenerSeesAllBitrixHandlersOfEventInCallOrder(): void
+    {
+        $manager = EventManager::getInstance();
+        $manager->addEventHandler('iblock', 'OnBeforeIBlockElementUpdate', ['\Vendor\Catalog\ProductHandler', 'onBeforeUpdate']);
+        $manager->registerEventHandler('iblock', 'OnBeforeIBlockElementUpdate', 'search', 'CSearchHandler', 'onElementUpdate');
+        $manager->addEventHandlerCompatible('iblock', 'OnBeforeIBlockElementUpdate', 'onBeforeElementUpdate');
+        $line = __LINE__ + 1;
+        $manager->addEventHandler('iblock', 'OnBeforeIBlockElementUpdate', static function (): void {});
+
+        $events = self::router(static function (RouteGroup $bitrix): void {
+            $bitrix->listen('iblock.OnBeforeIBlockElementUpdate', ScriptedListener::define(static function (EventInterface $event): void {
+                Journal::$entries = self::bitrix($event)->getHandlers();
+            }));
+        });
+        BitrixEventBridge::attach($manager, $events);
+        $manager->registerEventHandler('iblock', 'OnBeforeIBlockElementUpdate', 'rasa.shop', '', '', 100, '/local/modules/rasa.shop/handler.php');
+
+        // Вызываем только мост: остальные обработчики — имена несуществующих классов
+        $bridge = array_values(array_filter(
+            GetModuleEvents('iblock', 'OnBeforeIBlockElementUpdate', true),
+            static fn (array $handler): bool => \is_array($handler['CALLBACK'] ?? null) && $handler['CALLBACK'][0] instanceof BitrixEventBridge,
+        ));
+        $arFields = [];
+        ExecuteModuleEventEx($bridge[0], [&$arFields]);
+
+        self::assertSame([
+            'Vendor\Catalog\ProductHandler::onBeforeUpdate',
+            'CSearchHandler::onElementUpdate (search)',
+            'onBeforeElementUpdate',
+            'Closure ' . __FILE__ . ':' . $line,
+            BitrixEventBridge::class . '::bitrix.iblock.OnBeforeIBlockElementUpdate',
+            '/local/modules/rasa.shop/handler.php (rasa.shop)',
+        ], Journal::$entries);
+    }
+
     public function testRegistersOneHandlerPerEventAndIgnoresOtherRoutes(): void
     {
         $listener = ScriptedListener::define(static function (EventInterface $event): void {});

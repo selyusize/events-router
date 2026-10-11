@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Selyusize\EventsRouter\Bitrix;
 
 use Bitrix\Main\Event as D7Event;
+use Bitrix\Main\EventManager;
+use Closure;
 use LogicException;
 use Override;
 use Psr\EventDispatcher\StoppableEventInterface;
+use ReflectionFunction;
 use Selyusize\EventsRouter\Locale\Messages;
 
 /**
@@ -68,6 +71,60 @@ final class BitrixEvent implements StoppableEventInterface
     public function getEventType(): string
     {
         return $this->eventType;
+    }
+
+    /**
+     * Все обработчики, которые Bitrix вызовет на это событие, в порядке вызова.
+     *
+     * Список берётся из `EventManager`, а не из маршрутов роутера, поэтому в нём все обработчики
+     * любых неймспейсов: из `addEventHandler()` в `init.php`, зарегистрированные модулями
+     * в `b_module_to_module` и сам мост роутера — по его месту видно, кто вызван до слушателей роутера.
+     *
+     * ```php
+     * [
+     *     'App\\Catalog\\ProductHandler::onBeforeUpdate',
+     *     'CIBlockPropertyDirectory::onBeforeUpdate (iblock)',          // модуль из b_module_to_module
+     *     'Closure /local/php_interface/init.php:42',
+     *     'Selyusize\\EventsRouter\\Bitrix\\BitrixEventBridge::bitrix.iblock.OnBeforeIBlockElementUpdate',
+     * ]
+     * ```
+     *
+     * @return list<string> `Класс::метод`, имя функции, `Closure файл:строка` или путь к файлу обработчика;
+     *                      у обработчиков модулей в скобках — id модуля
+     */
+    public function getHandlers(): array
+    {
+        $handlers = [];
+
+        foreach (EventManager::getInstance()->findEventHandlers($this->moduleId, $this->eventType) as $handler) {
+            /** @var mixed $callback callable из addEventHandler() или null у обработчика модуля */
+            $callback = $handler['CALLBACK'] ?? null;
+
+            if (\is_array($callback) && isset($callback[0], $callback[1]) && \is_string($callback[1])) {
+                $class = \is_object($callback[0]) ? $callback[0]::class : (string)$callback[0];
+                $name = ltrim($class, '\\') . '::' . $callback[1];
+            } elseif ($callback instanceof Closure) {
+                $function = new ReflectionFunction($callback);
+                $name = 'Closure ' . (string)$function->getFileName() . ':' . (string)$function->getStartLine();
+            } elseif (\is_object($callback)) {
+                $name = $callback::class . '::__invoke';
+            } elseif (\is_string($callback)) {
+                $name = ltrim($callback, '\\');
+            } elseif (($handler['TO_CLASS'] ?? '') !== '') {
+                // Обработчик модуля из b_module_to_module: класс и метод — строками
+                $name = ltrim((string)$handler['TO_CLASS'], '\\') . '::' . (string)($handler['TO_METHOD'] ?? '');
+            } else {
+                $name = (string)($handler['TO_PATH'] ?? '');
+            }
+
+            if (($handler['TO_MODULE_ID'] ?? '') !== '') {
+                $name .= ' (' . (string)$handler['TO_MODULE_ID'] . ')';
+            }
+
+            $handlers[] = $name;
+        }
+
+        return $handlers;
     }
 
     /**

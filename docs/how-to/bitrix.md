@@ -74,6 +74,23 @@ Bitrix вызывает события так же, как всегда, — м�
 --8<-- "bitrix/bridge.out"
 ```
 
+## Посмотреть все обработчики события
+
+Слушатели роутера — не единственные, кто подписан на событие Bitrix. Рядом работают обработчики из `init.php`, из модулей ядра и партнёрских модулей. `getHandlers()` показывает их все в том порядке, в каком их вызовет Bitrix — список берётся из `EventManager`, а не из маршрутов:
+
+```php
+$bitrix->getHandlers();
+// [
+//     'CLists::OnBeforeIBlockElementUpdate (lists)',      // модуль из b_module_to_module
+//     'App\\Catalog\\Listener\\NormalizeElement\\Handler::handle',
+//     'Selyusize\\EventsRouter\\Bitrix\\BitrixEventBridge::bitrix.iblock.OnBeforeIBlockElementUpdate',
+//     'updatePreviewText',                                // функция
+//     'Closure /local/php_interface/init.php:42',
+// ]
+```
+
+Мост роутера тоже в списке: по его месту видно, какие обработчики сработают до слушателей роутера, а какие — после. Удобно писать список в лог из middleware группы `bitrix`, когда нужно понять, кто ещё трогает поля при сохранении товара.
+
 ## Если id модуля с точкой
 
 У партнёрских модулей id содержит точку: `rasa.shop`. А точка — разделитель сегментов топика. Для таких модулей соберите топик через `topic()`, она закодирует точку как `~`:
