@@ -34,10 +34,10 @@ $events = EventRouterFactory::create($container, [
 
 ## Язык сообщений {#locale}
 
-Сообщения библиотеки по умолчанию на русском: тексты исключений, записи лога, предупреждения PHP. `'locale' => 'en'` переключает их на английский, а ссылки в исключениях ведут на [английскую версию](https://selyusize.github.io/events-router/en/) этого сайта:
+Сообщения библиотеки по умолчанию на русском: тексты исключений, записи лога, предупреждения PHP. `'locale' => 'en'` переключает их на английский. Ссылки в исключениях ведут на этот сайт — он только на русском:
 
 ```text
-Invalid topic pattern "order-{order_id}.paid": parameter in segment "order-{order_id}" must take the whole segment, e.g. order.{order_id}. See https://selyusize.github.io/events-router/en/errors/invalid-topic-pattern/
+Invalid topic pattern "order-{order_id}.paid": parameter in segment "order-{order_id}" must take the whole segment, e.g. order.{order_id}. See https://selyusize.github.io/events-router/errors/invalid-topic-pattern/
 ```
 
 Язык **один на процесс**. Имя события проверяется в `new Event()`, где роутера нет, поэтому язык не может принадлежать экземпляру роутера. Он действует с момента вызова `create()`, в том числе на события, созданные после. Создавайте роутер при старте приложения, до первых событий. Вызов `create()` без ключа `locale` язык не меняет.

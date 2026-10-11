@@ -68,7 +68,7 @@ final class MessagesTest extends TestCase
         EventRouterFactory::create(null, ['locale' => 'en']);
 
         $this->expectException(InvalidEventName::class);
-        $this->expectExceptionMessage('Invalid event name "order paid": name contains whitespace. See https://selyusize.github.io/events-router/en/errors/invalid-event-name/');
+        $this->expectExceptionMessage('Invalid event name "order paid": name contains whitespace. See https://selyusize.github.io/events-router/errors/invalid-event-name/');
 
         new Event('order paid');
     }
@@ -78,7 +78,7 @@ final class MessagesTest extends TestCase
         $events = EventRouterFactory::create(null, ['locale' => 'en']);
 
         $this->expectException(InvalidRoute::class);
-        $this->expectExceptionMessage('Route error: listener class "App\Missing" not found. See https://selyusize.github.io/events-router/en/errors/invalid-route/');
+        $this->expectExceptionMessage('Route error: listener class "App\Missing" not found. See https://selyusize.github.io/events-router/errors/invalid-route/');
 
         $events->listen('order.paid', 'App\Missing');
     }

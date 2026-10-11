@@ -62,11 +62,3 @@ markdown_extensions:
       base_path: [examples, .]
       check_paths: true
 
-extra:
-  alternate:
-    - name: Русский
-      link: /events-router/
-      lang: ru
-    - name: English
-      link: /events-router/en/
-      lang: en

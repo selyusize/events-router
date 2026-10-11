@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace Selyusize\EventsRouter;
 
-use Selyusize\EventsRouter\Locale\LocaleEnum;
-use Selyusize\EventsRouter\Locale\Messages;
-
 /**
  * Ссылки на сайт документации.
  *
  * Каждое исключение библиотеки добавляет в текст ссылку на страницу
  * `errors/<slug>` с объяснением причины и способом исправления.
- * С `locale` = `en` — на английскую версию сайта, `en/errors/<slug>`.
+ * Сайт один, на русском, поэтому ссылка не зависит от `locale`.
  * Наличие страницы для каждого исключения проверяет ArchitectureTest.
  *
  * ```php
@@ -39,8 +36,6 @@ final class Documentation
      */
     public static function errorUrl(string $slug): string
     {
-        $language = Messages::getLocale() === LocaleEnum::Ru ? '' : Messages::getLocale()->value . '/';
-
-        return self::BASE_URL . $language . 'errors/' . $slug . '/';
+        return self::BASE_URL . 'errors/' . $slug . '/';
     }
 }

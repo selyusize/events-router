@@ -2,9 +2,9 @@
 
 Роутер событий для PHP. Маршруты событий описываются так же, как HTTP-маршруты в Slim: шаблоны топиков с параметрами, группы, middleware на группах и маршрутах. На одно событие можно повесить несколько слушателей. Совместим с PSR-14.
 
-**Документация:** https://selyusize.github.io/events-router/ · **English:** https://selyusize.github.io/events-router/en/
+**Документация:** https://selyusize.github.io/events-router/
 
-> Slim-style event router for PHP: topic patterns with parameters, groups and middleware, several listeners per event, PSR-14 compatible. Library messages are in Russian by default; `EventRouterFactory::create($container, ['locale' => 'en'])` switches them to English. [Documentation in English](https://selyusize.github.io/events-router/en/).
+> Slim-style event router for PHP: topic patterns with parameters, groups and middleware, several listeners per event, PSR-14 compatible. Library messages are in Russian by default; `EventRouterFactory::create($container, ['locale' => 'en'])` switches them to English. Documentation is in Russian.
 
 ```php
 return static function (EventRouter $events): void {

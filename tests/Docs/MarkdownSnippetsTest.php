@@ -19,7 +19,7 @@ use SplFileInfo;
  */
 final class MarkdownSnippetsTest extends TestCase
 {
-    private const DOCS_DIRS = [__DIR__ . '/../../docs', __DIR__ . '/../../docs-en'];
+    private const DOCS_DIRS = [__DIR__ . '/../../docs'];
 
     public function testPhpSnippetsAreInsideCodeBlocks(): void
     {
