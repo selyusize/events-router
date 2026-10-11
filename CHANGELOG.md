@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.7.5] — 2026-10-11
+
+### Добавлено
+
+- **`BitrixEventBridge::dispatch()`** — свои события проекта в проекте на Bitrix. Событие уходит в тот же роутер, к которому подключён мост: маршруты, middleware, лог и обработка ошибок общие с событиями Bitrix. Работает из компонента, контроллера, агента и из слушателя события Bitrix — например, чтобы перевести `sale.OnSaleOrderPaid` в свой `shop.order.42.paid`. С `attachLazy()` роутер собирается при первом событии, своём или Bitrix, один раз на процесс. До подключения моста или с топиком под префиксом `bitrix` — `LogicException`.
+- Рецепт «Подключить события Bitrix»: раздел «Свои события рядом с событиями Bitrix» с примером, который выполняется в CI.
+
+### Изменено
+
+- `attachLazy()` без файла событий больше не собирает роутер второй раз при первом событии Bitrix: берёт уже собранный.
+
+### Удалено
+
+- Документация на английском (`/events-router/en/`). Сообщения библиотеки на английском (`'locale' => 'en'`) остались, ссылки в них теперь ведут на страницы ошибок русского сайта.
+
 ## [0.7.0] — 2026-10-11
 
 ### Добавлено
@@ -108,7 +123,8 @@
 - **PSR-14.** `Psr14EventDispatcher`: роутер под `Psr\EventDispatcher\EventDispatcherInterface`, объекты без `EventInterface` превращаются в события через явный маппер. Ошибка — `UnmappableEvent`.
 - **Документация** на GitHub Pages: руководство с исполняемыми примерами, справочник API из PHPDoc, страница на каждое исключение.
 
-[Unreleased]: https://github.com/selyusize/events-router/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/selyusize/events-router/compare/v0.7.5...HEAD
+[0.7.5]: https://github.com/selyusize/events-router/compare/v0.7.0...v0.7.5
 [0.7.0]: https://github.com/selyusize/events-router/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/selyusize/events-router/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/selyusize/events-router/compare/v0.5.0...v0.5.1
